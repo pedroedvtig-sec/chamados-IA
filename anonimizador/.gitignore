@@ -1,0 +1,8 @@
+# dados reais e derivados: nunca versionar
+config.json
+entrada/
+saida/
+**/_mapa_privado.json
+*.env
+__pycache__/
+dados_anonimizados/

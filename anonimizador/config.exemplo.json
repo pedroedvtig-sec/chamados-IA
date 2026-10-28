@@ -1,0 +1,27 @@
+{
+  "_comentario": "Copie para config.json e preencha com os dados reais. O config.json real NÃO vai para o GitHub (está no .gitignore), porque ele é a lista dos nomes que você quer esconder.",
+
+  "nomes": ["Joana", "Marcos", "Beatriz", "Rodrigo"],
+  "sobrenomes": ["Pereira", "Albuquerque", "Nogueira"],
+  "nomes_arriscados": ["Paz", "Cruz", "Passos", "Clara"],
+  "primeiros_arriscados": ["Clara"],
+  "apelidos": {"Bia": "Beatriz", "Albuquerq": "Albuquerque"},
+
+  "tecnicos": ["Rodrigo", "Marcos Nogueira"],
+  "quem_e": {"Marcos": "Marcos Nogueira", "Joana Silva": "Joana Pereira"},
+  "logins": {"rsantos": "Rodrigo"},
+
+  "empresas": [
+    ["CLIENTE REAL LTDA", "CLIENTE-A"],
+    ["minhaempresa.local", "empresa.local"],
+    ["minhaempresa.com.br", "empresa.example"]
+  ],
+  "ids": [
+    ["\\bEMPX-(\\d+)", "EMP-\\1"],
+    ["\\bNB-(\\d+)", "PC-\\1"]
+  ],
+  "palavras_empresa": [["\\bMinhaEmpresa\\b", "Empresa"]],
+  "rede_interna": {"de": "192.168.0.", "para": "10.20.30."},
+  "ids_de_usuario": {"uuid-real-do-supabase": "00000000-0000-4000-8000-000000000001"},
+  "links_privados": ["mail.google.com/mail"]
+}
