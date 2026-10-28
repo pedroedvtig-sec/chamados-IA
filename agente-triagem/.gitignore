@@ -1,0 +1,6 @@
+avaliacao/
+gabarito*.csv
+*.env
+.env
+__pycache__/
+.venv/
