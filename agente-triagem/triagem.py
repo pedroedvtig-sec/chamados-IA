@@ -6,11 +6,11 @@ import time
 from datetime import datetime, timezone
 
 from base import RE_MAQUINA, Base, Ferramentas, cortar
+from modelos import criar_provedor
 
-MODELO_PADRAO = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 DADOS_PADRAO = os.environ.get("DADOS_TRIAGEM", "~/dados_privados/dados_anonimizados")
 
-TIPOS = ["incidente", "solicitacao", "tarefa", "compra"]
+TIPOS = ["incidente", "solicitacao", "tarefa"]
 PRIORIDADES = ["baixa", "média", "alta", "crítica"]
 
 SISTEMA = """Você é o agente de triagem do suporte de TI de uma empresa com um único analista de suporte.
@@ -24,16 +24,21 @@ Como trabalhar:
 5. Termine SEMPRE chamando finalizar_triagem. Não responda em texto livre.
 
 Tipo:
-- incidente: algo que funcionava parou de funcionar.
-- solicitacao: pedido de acesso, equipamento, instalação, usuário novo, reset de senha a pedido.
-- tarefa: trabalho interno da TI (backup de quem saiu, formatação planejada, inventário, documentação).
-- compra: precisa comprar algo (toner, peça, licença).
+- incidente: algo que funcionava parou de funcionar. Inclui tinta ou toner que acabou e precisa ser trocado, e conta travada por falha do sistema.
+- solicitacao: algo a mais que o usuário pede: acesso, equipamento por preferência, instalação, troca de nome no AD, reset de senha porque o usuário esqueceu, máquina para colaborador novo.
+- tarefa: trabalho que parte do processo ou da própria TI, sem pedido do usuário: backup, desligamento de colaborador, formatação planejada, inventário, refazer termo ou documentação depois de uma troca de equipamento.
 
-Prioridade:
-- crítica: várias pessoas paradas, risco de segurança, ou colaborador novo começando hoje sem acesso.
-- alta: uma pessoa sem conseguir trabalhar e sem alternativa (sem e-mail, sem sistema principal, máquina não liga).
-- média: atrapalha, mas tem contorno, ou é um pedido comum com prazo normal.
-- baixa: dúvida, ajuste ou melhoria sem impacto no trabalho.
+Categoria:
+- Solicitação de máquina para colaborador novo (ou máquina temporária para quem vai entrar) é sempre hardware, mesmo que inclua configuração de contas e sistemas.
+
+Prioridade = impacto × urgência.
+Impacto: empresa inteira > setor inteiro ou serviço que vários usam > uma pessoa. Use o "Mapa de impacto" do pedido para saber quais máquinas e serviços afetam muita gente.
+Urgência: parado sem alternativa > atrapalha mas tem contorno > sem pressa.
+- crítica: empresa ou setor inteiro parado; risco de segurança ativo.
+- alta: setor afetado mas com contorno; uma pessoa parada sem alternativa; desligamento de colaborador (os acessos precisam ser revogados logo); solicitação de máquina para colaborador novo.
+- média: uma pessoa com o trabalho atrapalhado, mas com contorno; pedido comum com prazo normal.
+- baixa: dúvida, ajuste, padronização ou melhoria sem impacto no trabalho.
+Julgue pelo problema no momento em que foi relatado. Muitos chamados são registrados depois de resolvidos ("resetei", "deu certo"): isso não diminui a prioridade.
 Na dúvida entre duas, escolha a menor e explique.
 
 Recorrência:
@@ -110,6 +115,8 @@ def montar_pedido(chamado, base=None):
         f"Máquina: {chamado.get('maquina') or '(não informada)'}",
     ]
     pedido = "Faça a triagem deste chamado:\n" + "\n".join(linhas)
+    if base and base.impacto:
+        pedido += "\n\nMapa de impacto da empresa:\n" + "\n".join(f"- {linha}" for linha in base.impacto)
     termos = base.termos_internos(f"{chamado.get('titulo', '')} {chamado.get('descricao', '')}") if base else {}
     if termos:
         pedido += "\n\nGlossário interno (termos que aparecem neste chamado):\n" + "\n".join(
@@ -117,75 +124,32 @@ def montar_pedido(chamado, base=None):
     return pedido
 
 
-def chamar_modelo(cliente, modelo, conteudos, config, tentativas=6):
-    from google.genai import errors
-    espera = 5
-    for tentativa in range(tentativas):
-        try:
-            return cliente.models.generate_content(model=modelo, contents=conteudos, config=config)
-        except errors.APIError as erro:
-            mensagem = str(getattr(erro, "message", "") or erro)
-            if erro.code == 429 and ("limit: 0" in mensagem or "PerDay" in mensagem):
-                sys.exit(f"\nO modelo {modelo} não tem cota disponível na sua chave agora "
-                         f"(cota zerada ou limite diário atingido).\nTente outro modelo com --modelo ou espere a cota renovar.\n"
-                         f"Detalhe: {mensagem[:300]}")
-            if erro.code not in (429, 500, 503) or tentativa == tentativas - 1:
-                raise
-            motivo = "limite por minuto" if erro.code == 429 else "servidor sobrecarregado"
-            print(f"  ({motivo}, erro {erro.code}; esperando {espera}s...)", file=sys.stderr)
-            time.sleep(espera)
-            espera = min(espera * 2, 60)
-
-
-def triar(chamado, ferramentas, cliente, modelo=MODELO_PADRAO, max_rodadas=8):
-    from google.genai import types
-
+def triar(chamado, ferramentas, provedor, max_rodadas=8):
     funcoes = {
         "buscar_procedimentos": ferramentas.buscar_procedimentos,
         "buscar_chamados_parecidos": ferramentas.buscar_chamados_parecidos,
         "historico": ferramentas.historico,
         "pesquisar_web": ferramentas.pesquisar_web,
     }
-    config = types.GenerateContentConfig(
-        system_instruction=SISTEMA,
-        tools=[types.Tool(function_declarations=[types.FunctionDeclaration(**d) for d in declaracoes(ferramentas.base)])],
-        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
-        temperature=0.2,
-    )
-    conteudos = [types.Content(role="user", parts=[types.Part.from_text(text=montar_pedido(chamado, ferramentas.base))])]
-    rastro, inicio, chamadas = [], time.time(), 0
 
-    for _ in range(max_rodadas):
-        resposta = chamar_modelo(cliente, modelo, conteudos, config)
-        chamadas += 1
-        if not resposta.candidates or not resposta.candidates[0].content:
-            raise RuntimeError("o modelo não devolveu resposta")
-        conteudos.append(resposta.candidates[0].content)
+    def executar(nome, argumentos):
+        funcao = funcoes.get(nome)
+        if not funcao:
+            return {"erro": f"função desconhecida: {nome}"}
+        try:
+            return funcao(**argumentos)
+        except TypeError as erro:
+            return {"erro": f"argumentos inválidos para {nome}: {erro}"}
 
-        pedidos = resposta.function_calls or []
-        if not pedidos:
-            conteudos.append(types.Content(role="user", parts=[types.Part.from_text(
-                text="Entregue o resultado chamando a função finalizar_triagem.")]))
-            continue
-
-        final = next((p for p in pedidos if p.name == "finalizar_triagem"), None)
-        if final:
-            resultado = dict(final.args or {})
-            resultado["ferramentas_usadas"] = rastro
-            resultado["chamadas_ao_modelo"] = chamadas
-            resultado["segundos"] = round(time.time() - inicio, 1)
-            return resultado
-
-        partes = []
-        for p in pedidos:
-            argumentos = dict(p.args or {})
-            funcao = funcoes.get(p.name)
-            saida = funcao(**argumentos) if funcao else {"erro": f"função desconhecida: {p.name}"}
-            rastro.append({"funcao": p.name, "argumentos": argumentos})
-            partes.append(types.Part.from_function_response(name=p.name, response=saida))
-        conteudos.append(types.Content(role="user", parts=partes))
-
-    raise RuntimeError(f"o agente não finalizou em {max_rodadas} rodadas")
+    inicio = time.time()
+    resultado, rastro, chamadas = provedor.agente(
+        SISTEMA, montar_pedido(chamado, ferramentas.base), declaracoes(ferramentas.base),
+        executar, "finalizar_triagem", max_rodadas)
+    resultado["ferramentas_usadas"] = rastro
+    resultado["chamadas_ao_modelo"] = chamadas
+    resultado["segundos"] = round(time.time() - inicio, 1)
+    resultado["modelo"] = provedor.modelos_usados[-1] if provedor.modelos_usados else provedor.modelo
+    return resultado
 
 
 def chamado_da_base(base, id_chamado):
@@ -226,7 +190,7 @@ def exibir(r):
     usadas = ", ".join(f'{u["funcao"]}({cortar(", ".join(str(v) for v in u["argumentos"].values()), 40)})'
                        for u in r.get("ferramentas_usadas", []))
     print(f'\nConfiança: {r.get("confianca")}    Ferramentas: {usadas or "nenhuma"}')
-    print(f'{r.get("chamadas_ao_modelo")} chamadas ao modelo em {r.get("segundos")}s')
+    print(f'{r.get("chamadas_ao_modelo")} chamadas ao modelo em {r.get("segundos")}s · modelo: {r.get("modelo")}')
     print(linha)
 
 
@@ -239,16 +203,14 @@ def main():
     ap.add_argument("--maquina", default="", help="tag da máquina, ex.: PC-000087")
     ap.add_argument("--chamado", help="triar um chamado já existente da base, ex.: EMP-0349")
     ap.add_argument("--dados", default=DADOS_PADRAO)
-    ap.add_argument("--modelo", default=MODELO_PADRAO)
+    ap.add_argument("--provedor", help="openrouter ou gemini (padrão: LLM_PROVEDOR, ou openrouter se houver OPENROUTER_API_KEY)")
+    ap.add_argument("--modelo", help="nome do modelo no provedor escolhido")
     ap.add_argument("--json", action="store_true", help="imprime o resultado em JSON")
     args = ap.parse_args()
 
     if not args.texto and not args.chamado:
         ap.error("informe o texto do chamado ou --chamado EMP-XXXX")
-    if not os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
-        sys.exit("Defina a variável GEMINI_API_KEY com a sua chave do Google AI Studio.")
-
-    from google import genai
+    provedor = criar_provedor(args.provedor, args.modelo)
     base = Base(args.dados)
 
     if args.chamado:
@@ -264,7 +226,7 @@ def main():
         }
         ferramentas, original = Ferramentas(base, corte=datetime.now(timezone.utc)), None
 
-    resultado = triar(chamado, ferramentas, genai.Client(), args.modelo)
+    resultado = triar(chamado, ferramentas, provedor)
 
     if args.json:
         print(json.dumps(resultado, ensure_ascii=False, indent=2))

@@ -94,6 +94,8 @@ class Base:
                                    for cat in self.categorias}
         arquivo_glossario = pasta / "glossario.json"
         self.glossario = json.loads(arquivo_glossario.read_text(encoding="utf-8")) if arquivo_glossario.exists() else {}
+        arquivo_impacto = pasta / "impacto.json"
+        self.impacto = json.loads(arquivo_impacto.read_text(encoding="utf-8")) if arquivo_impacto.exists() else []
 
         self.idx_chamados = BM25([f'{c["titulo"]} {c["titulo"]} {c["descricao"]} {c["resolucao"]}' for c in self.chamados])
         self.idx_procs = BM25([f'{p["titulo"]} {p["titulo"]} {p["titulo"]} {p["categoria"]} {" ".join(p["passos"])}'

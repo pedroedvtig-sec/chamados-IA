@@ -17,7 +17,7 @@ Sou o único analista de suporte de TI da empresa. Cada chamado que chega precis
 
 ## Como funciona
 
-O agente usa o Gemini com *function calling*: o modelo decide quais ferramentas chamar, lê o resultado e só então decide.
+O agente usa um modelo de linguagem com *function calling*: o modelo decide quais ferramentas chamar, lê o resultado e só então decide.
 
 ```
 chamado novo
@@ -59,7 +59,7 @@ Dois problemas reais dos dados, que a avaliação deixa à mostra:
 
 ```bash
 pip install -r requirements.txt
-export GEMINI_API_KEY="sua-chave-do-google-ai-studio"
+export OPENROUTER_API_KEY="sua-chave-da-openrouter"
 export DADOS_TRIAGEM=~/dados_privados/dados_anonimizados
 
 python triagem.py "a pasta Z sumiu do computador" --usuario "Usuário 12" --maquina PC-000049
@@ -69,7 +69,14 @@ python avaliar.py --gerar-gabarito gabarito.csv
 python avaliar.py --n 40 --gabarito gabarito.csv
 ```
 
-O modelo padrão é `gemini-3.8-flash`; troque com `--modelo` ou com a variável `GEMINI_MODEL`. A avaliação salva o progresso em `avaliacao/resultados.jsonl` e continua de onde parou se o limite gratuito da API estourar.
+O agente funciona com dois provedores, escolhidos por `--provedor` ou pela variável `LLM_PROVEDOR`:
+
+| Provedor | Chave | Modelo padrão | Trocar o modelo |
+|---|---|---|---|
+| OpenRouter (padrão se houver chave) | `OPENROUTER_API_KEY` | `openrouter/free` (escolhe um modelo gratuito com suporte a funções) | `--modelo` ou `OPENROUTER_MODEL` |
+| Gemini | `GEMINI_API_KEY` | `gemini-3.1-flash-lite` | `--modelo` ou `GEMINI_MODEL` |
+
+Na OpenRouter, todo pedido vai com `data_collection: deny` (só provedores que não treinam com os dados) e `require_parameters: true` (só provedores que suportam chamada de funções). O `openrouter/free` sorteia o modelo a cada pedido; para a avaliação, fixe um modelo com `--modelo` para os números serem comparáveis. A avaliação salva o progresso em `avaliacao/resultados.jsonl` e continua de onde parou se o limite gratuito da API estourar.
 
 ## Privacidade
 
@@ -77,6 +84,7 @@ Os chamados vêm de um ambiente real. Antes de qualquer uso com IA, eles passam 
 
 ## Limitações
 
-- A pesquisa na web usa o DuckDuckGo (`ddgs`), porque o *grounding* com Google Search não está disponível no plano gratuito do Gemini.
-- No plano gratuito, o Google pode usar o conteúdo enviado para melhorar os produtos dele. Por isso só dados anonimizados são enviados.
+- A pesquisa na web usa o DuckDuckGo (`ddgs`), para funcionar igual com qualquer provedor.
+- Modelos gratuitos têm limite de pedidos por dia (na OpenRouter, 50 por dia sem créditos comprados). A avaliação salva o progresso e pode ser feita em partes.
+- Só dados anonimizados são enviados, qualquer que seja o provedor.
 - Para chamados novos que ainda não passaram pelo anonimizador, o histórico por usuário só funciona com o rótulo ("Usuário 12"), não com o nome real.

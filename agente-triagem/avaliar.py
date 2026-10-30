@@ -1,14 +1,14 @@
 import argparse
 import csv
 import json
-import os
 import sys
 import time
 from collections import Counter
 from pathlib import Path
 
 from base import Base, cortar
-from triagem import DADOS_PADRAO, MODELO_PADRAO, PRIORIDADES, TIPOS, chamado_da_base, chamar_modelo, triar
+from modelos import criar_provedor
+from triagem import DADOS_PADRAO, PRIORIDADES, TIPOS, chamado_da_base, triar
 
 CAMPOS = ["categoria", "subcategoria", "tipo", "prioridade"]
 
@@ -29,25 +29,20 @@ ESQUEMA_JUIZ = {
 }
 
 
-def julgar(cliente, modelo, original, passos):
-    from google.genai import types
+def julgar(provedor, original, passos):
     pedido = (f"Problema: {original['titulo']} — {cortar(original['descricao'], 600)}\n\n"
               f"O que o técnico fez: {cortar(original['resolucao'] or original['descricao'], 1200)}\n\n"
               "Passos sugeridos pelo agente:\n" + "\n".join(f"{i}. {p}" for i, p in enumerate(passos, 1)))
-    config = types.GenerateContentConfig(system_instruction=JUIZ, temperature=0,
-                                         response_mime_type="application/json",
-                                         response_json_schema=ESQUEMA_JUIZ)
-    resposta = chamar_modelo(cliente, modelo, pedido, config)
-    return json.loads(resposta.text)
+    return provedor.json(JUIZ, pedido, ESQUEMA_JUIZ)
 
 
 def tem_registro(original):
     return len(f"{original['descricao']} {original['resolucao']}".strip()) >= 60 and bool(original["resolucao"])
 
 
-def avaliar_um(base, original, cliente, modelo, com_juiz):
+def avaliar_um(base, original, provedor, com_juiz):
     chamado, ferramentas, _ = chamado_da_base(base, original["id"])
-    r = triar(chamado, ferramentas, cliente, modelo)
+    r = triar(chamado, ferramentas, provedor)
     gabarito_proc = sorted(p["id"] for p in base.procedimentos
                            if p["origem"] == "base oficial" and original["id"] in p["chamados_que_usaram"])
     linha = {
@@ -66,13 +61,14 @@ def avaliar_um(base, original, cliente, modelo, com_juiz):
         "ferramentas": [u["funcao"] for u in r.get("ferramentas_usadas", [])],
         "chamadas_ao_modelo": r.get("chamadas_ao_modelo", 0),
         "segundos": r.get("segundos", 0),
+        "modelo": r.get("modelo", ""),
     }
     if not com_juiz:
         linha["juiz"] = {"veredito": "nao_avaliado", "motivo": ""}
     elif not tem_registro(original):
         linha["juiz"] = {"veredito": "sem_registro", "motivo": "o chamado não tem a resolução escrita"}
     else:
-        linha["juiz"] = julgar(cliente, modelo, original, linha["passos_sugeridos"])
+        linha["juiz"] = julgar(provedor, original, linha["passos_sugeridos"])
     return linha
 
 
@@ -141,6 +137,9 @@ def relatorio(linhas, erros, base, teste, modelo):
     md += ["\n## Custo\n",
            f"- {sum(l['chamadas_ao_modelo'] for l in ok) / max(n, 1):.1f} chamadas ao modelo por chamado",
            f"- {sum(l['segundos'] for l in ok) / max(n, 1):.1f} s por chamado"]
+    usados = Counter(l.get("modelo", "") for l in ok if l.get("modelo"))
+    if len(usados) > 1:
+        md += ["- modelos que responderam: " + ", ".join(f"`{m}` ({q})" for m, q in usados.most_common())]
 
     divergentes = [l for l in ok if l["previsto"]["prioridade"] != l["real"]["prioridade"]]
     if divergentes:
@@ -157,7 +156,8 @@ def main():
     ap = argparse.ArgumentParser(description="Avalia o agente nos chamados mais recentes da base.")
     ap.add_argument("--n", type=int, default=40, help="quantos chamados recentes avaliar")
     ap.add_argument("--dados", default=DADOS_PADRAO)
-    ap.add_argument("--modelo", default=MODELO_PADRAO)
+    ap.add_argument("--provedor", help="openrouter ou gemini")
+    ap.add_argument("--modelo", help="nome do modelo no provedor escolhido; para avaliar, prefira um modelo fixo")
     ap.add_argument("--saida", default="avaliacao")
     ap.add_argument("--sem-juiz", action="store_true", help="não compara os passos com a resolução real")
     ap.add_argument("--pausa", type=float, default=4, help="segundos entre chamados, para respeitar o limite gratuito")
@@ -184,11 +184,10 @@ def main():
                     if linha.get(campo) is not None:
                         base.por_id[linha["id"]][campo] = linha[campo].strip()
 
-    if not os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
-        sys.exit("Defina a variável GEMINI_API_KEY com a sua chave do Google AI Studio.")
-
-    from google import genai
-    cliente = genai.Client()
+    provedor = criar_provedor(args.provedor, args.modelo)
+    if provedor.modelo in ("openrouter/free", "openrouter/auto"):
+        print(f"Aviso: '{provedor.modelo}' escolhe um modelo diferente a cada pedido. "
+              "Para uma avaliação comparável, fixe um modelo com --modelo.", file=sys.stderr)
 
     saida = Path(args.saida)
     saida.mkdir(parents=True, exist_ok=True)
@@ -205,7 +204,7 @@ def main():
             continue
         print(f"[{i}/{len(teste)}] {original['id']} {cortar(original['titulo'], 50)}", flush=True)
         try:
-            item = avaliar_um(base, original, cliente, args.modelo, not args.sem_juiz)
+            item = avaliar_um(base, original, provedor, not args.sem_juiz)
         except Exception as erro:
             item = {"id": original["id"], "erro": f"{type(erro).__name__}: {cortar(str(erro), 200)}"}
             print(f"  erro: {item['erro']}", file=sys.stderr)
@@ -223,7 +222,7 @@ def main():
         if "erro" in item and item["id"] not in feitos:
             erros.append(item)
 
-    (saida / "relatorio.md").write_text(relatorio(linhas, erros, base, teste, args.modelo), encoding="utf-8")
+    (saida / "relatorio.md").write_text(relatorio(linhas, erros, base, teste, f"{provedor.nome}: {provedor.modelo}"), encoding="utf-8")
     with (saida / "resultados.csv").open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
         w.writerow(["id", "titulo"] + [f"{c}_real" for c in CAMPOS] + [f"{c}_agente" for c in CAMPOS]
