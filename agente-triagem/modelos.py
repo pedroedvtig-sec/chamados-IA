@@ -35,6 +35,7 @@ class OpenRouter:
             sys.exit("Defina a variável OPENROUTER_API_KEY com a sua chave da OpenRouter.")
         self.modelo = modelo or os.environ.get("OPENROUTER_MODEL", "openrouter/free")
         self.modelos_usados = []
+        self.aceita_forcar = True
 
     def _post(self, corpo, tentativas=6):
         corpo = {
@@ -94,7 +95,16 @@ class OpenRouter:
         escolha = "auto"
         rastro, chamadas = [], 0
         for _ in range(max_rodadas):
-            dados = self._post({"messages": mensagens, "tools": ferramentas, "tool_choice": escolha})
+            if escolha != "auto" and not self.aceita_forcar:
+                escolha = "auto"
+            try:
+                dados = self._post({"messages": mensagens, "tools": ferramentas, "tool_choice": escolha})
+            except RuntimeError as erro:
+                if escolha == "auto" or "tool_choice" not in str(erro):
+                    raise
+                self.aceita_forcar = False
+                escolha = "auto"
+                dados = self._post({"messages": mensagens, "tools": ferramentas, "tool_choice": escolha})
             chamadas += 1
             mensagem = dados["choices"][0]["message"]
             pedidos = mensagem.get("tool_calls") or []
