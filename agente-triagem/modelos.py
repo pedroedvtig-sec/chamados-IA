@@ -20,6 +20,24 @@ def _json_do_texto(texto):
         raise
 
 
+def _problemas(argumentos, esquema):
+    if not isinstance(argumentos, dict):
+        return {"campos_faltando": list(esquema.get("required", []))}
+    propriedades = esquema.get("properties", {})
+    faltando = [c for c in esquema.get("required", []) if argumentos.get(c) in (None, "", [])]
+    vazados = [c for c, v in argumentos.items() if isinstance(v, str) and "<parameter" in v]
+    invalidos = {c: propriedades[c]["enum"] for c, v in argumentos.items()
+                 if c in propriedades and "enum" in propriedades[c] and v not in (None, "") and v not in propriedades[c]["enum"]}
+    problemas = {}
+    if faltando:
+        problemas["campos_faltando"] = faltando
+    if vazados:
+        problemas["campos_com_marcacao"] = vazados
+    if invalidos:
+        problemas["valores_invalidos_use_um_destes"] = invalidos
+    return problemas
+
+
 def _esperar(espera, motivo):
     print(f"  ({motivo}; esperando {espera}s...)", file=sys.stderr)
     time.sleep(espera)
@@ -90,7 +108,7 @@ class OpenRouter:
         ferramentas = [{"type": "function", "function": {
             "name": d["name"], "description": d["description"], "parameters": d["parameters_json_schema"]}}
             for d in declaracoes]
-        obrigatorios = next((d["parameters_json_schema"].get("required", []) for d in declaracoes if d["name"] == final), [])
+        esquema_final = next((d["parameters_json_schema"] for d in declaracoes if d["name"] == final), {})
         mensagens = [{"role": "system", "content": sistema}, {"role": "user", "content": pedido}]
         escolha = "auto"
         rastro, chamadas = [], 0
@@ -124,17 +142,13 @@ class OpenRouter:
                 if not isinstance(argumentos, dict):
                     argumentos = None
                 if nome == final:
-                    if argumentos is None:
-                        faltando, vazados = list(obrigatorios), []
-                    else:
-                        faltando = [c for c in obrigatorios if argumentos.get(c) in (None, "", [])]
-                        vazados = [c for c, v in argumentos.items() if isinstance(v, str) and "<parameter" in v]
-                    if not faltando and not vazados:
+                    problemas = _problemas(argumentos, esquema_final)
+                    if not problemas:
                         return argumentos, rastro, chamadas
                     mensagens.append({"role": "tool", "tool_call_id": p.get("id", nome), "content": json.dumps({
-                        "erro": "chamada incompleta: os argumentos precisam ser um JSON válido, com cada campo separado "
-                                "e sem marcação <parameter> dentro dos textos",
-                        "campos_faltando": faltando, "campos_com_marcacao": vazados}, ensure_ascii=False)})
+                        "erro": "chamada inválida: os argumentos precisam ser um JSON válido, com cada campo separado, "
+                                "sem marcação <parameter> dentro dos textos e só com os valores permitidos",
+                        **problemas}, ensure_ascii=False)})
                     escolha = {"type": "function", "function": {"name": final}}
                     continue
                 argumentos = argumentos or {}
@@ -143,12 +157,26 @@ class OpenRouter:
                 mensagens.append({"role": "tool", "tool_call_id": p.get("id", nome), "content": json.dumps(saida, ensure_ascii=False)})
         raise RuntimeError(f"o agente não finalizou em {max_rodadas} rodadas")
 
-    def json(self, sistema, pedido, esquema):
-        dados = self._post({
-            "messages": [{"role": "system", "content": sistema}, {"role": "user", "content": pedido}],
-            "response_format": {"type": "json_schema", "json_schema": {"name": "resposta", "schema": esquema}},
-        })
-        return _json_do_texto(dados["choices"][0]["message"].get("content"))
+    def json(self, sistema, pedido, esquema, tentativas=3):
+        mensagens = [{"role": "system", "content": sistema}, {"role": "user", "content": pedido}]
+        for tentativa in range(tentativas):
+            dados = self._post({
+                "messages": mensagens,
+                "response_format": {"type": "json_schema", "json_schema": {"name": "resposta", "schema": esquema}},
+            })
+            texto = dados["choices"][0]["message"].get("content") or ""
+            try:
+                resposta = _json_do_texto(texto)
+            except (json.JSONDecodeError, ValueError):
+                resposta = None
+            problemas = _problemas(resposta, esquema)
+            if not problemas:
+                return resposta
+            if tentativa == tentativas - 1:
+                raise RuntimeError(f"resposta inválida do modelo: {json.dumps(problemas, ensure_ascii=False)[:200]}")
+            mensagens += [{"role": "assistant", "content": texto},
+                          {"role": "user", "content": "Resposta inválida. Corrija e responda só com o JSON: "
+                                                      + json.dumps(problemas, ensure_ascii=False)}]
 
 
 class Gemini:

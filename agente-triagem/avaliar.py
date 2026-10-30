@@ -29,18 +29,18 @@ ESQUEMA_JUIZ = {
 }
 
 
-def julgar(provedor, original, passos):
+def julgar(juiz, original, passos):
     pedido = (f"Problema: {original['titulo']} — {cortar(original['descricao'], 600)}\n\n"
               f"O que o técnico fez: {cortar(original['resolucao'] or original['descricao'], 1200)}\n\n"
               "Passos sugeridos pelo agente:\n" + "\n".join(f"{i}. {p}" for i, p in enumerate(passos, 1)))
-    return provedor.json(JUIZ, pedido, ESQUEMA_JUIZ)
+    return juiz.json(JUIZ, pedido, ESQUEMA_JUIZ)
 
 
 def tem_registro(original):
     return len(f"{original['descricao']} {original['resolucao']}".strip()) >= 60 and bool(original["resolucao"])
 
 
-def avaliar_um(base, original, provedor, com_juiz):
+def avaliar_um(base, original, provedor, juiz, com_juiz):
     chamado, ferramentas, _ = chamado_da_base(base, original["id"])
     r = triar(chamado, ferramentas, provedor)
     gabarito_proc = sorted(p["id"] for p in base.procedimentos
@@ -62,13 +62,14 @@ def avaliar_um(base, original, provedor, com_juiz):
         "chamadas_ao_modelo": r.get("chamadas_ao_modelo", 0),
         "segundos": r.get("segundos", 0),
         "modelo": r.get("modelo", ""),
+        "juiz_modelo": juiz.modelo if com_juiz else "",
     }
     if not com_juiz:
         linha["juiz"] = {"veredito": "nao_avaliado", "motivo": ""}
     elif not tem_registro(original):
         linha["juiz"] = {"veredito": "sem_registro", "motivo": "o chamado não tem a resolução escrita"}
     else:
-        linha["juiz"] = julgar(provedor, original, linha["passos_sugeridos"])
+        linha["juiz"] = julgar(juiz, original, linha["passos_sugeridos"])
     return linha
 
 
@@ -85,7 +86,7 @@ def matriz(linhas, campo, valores):
     return cab + corpo
 
 
-def relatorio(linhas, erros, base, teste, modelo):
+def relatorio(linhas, erros, base, teste, modelo, juiz_modelo):
     ok = [l for l in linhas if "erro" not in l]
     n = len(ok)
     inicio_teste = min(c["data"] for c in teste)
@@ -127,8 +128,10 @@ def relatorio(linhas, erros, base, teste, modelo):
 
     juiz = Counter(l["juiz"]["veredito"] for l in ok)
     julgados = sum(juiz.get(v, 0) for v in ("compativel", "parcial", "diferente"))
+    juizes = sorted({l.get("juiz_modelo", "") for l in ok if l.get("juiz_modelo")})
+    quem = ", ".join(f"`{j}`" for j in juizes) or f"`{juiz_modelo}`"
     md += ["\n## Os passos sugeridos resolveriam?\n",
-           "Um segundo modelo comparou os passos do agente com o que foi feito de verdade.\n",
+           f"Um modelo juiz ({quem}) comparou os passos do agente com o que foi feito de verdade.\n",
            f"- compatível: {juiz.get('compativel', 0)} ({porcentagem(juiz.get('compativel', 0), julgados)})",
            f"- parcial: {juiz.get('parcial', 0)} ({porcentagem(juiz.get('parcial', 0), julgados)})",
            f"- diferente: {juiz.get('diferente', 0)} ({porcentagem(juiz.get('diferente', 0), julgados)})",
@@ -158,6 +161,7 @@ def main():
     ap.add_argument("--dados", default=DADOS_PADRAO)
     ap.add_argument("--provedor", help="openrouter ou gemini")
     ap.add_argument("--modelo", help="nome do modelo no provedor escolhido; para avaliar, prefira um modelo fixo")
+    ap.add_argument("--juiz", help="modelo que julga os passos; use o mesmo em todas as avaliações para comparar modelos")
     ap.add_argument("--saida", default="avaliacao")
     ap.add_argument("--sem-juiz", action="store_true", help="não compara os passos com a resolução real")
     ap.add_argument("--pausa", type=float, default=4, help="segundos entre chamados, para respeitar o limite gratuito")
@@ -188,6 +192,10 @@ def main():
     if provedor.modelo in ("openrouter/free", "openrouter/auto"):
         print(f"Aviso: '{provedor.modelo}' escolhe um modelo diferente a cada pedido. "
               "Para uma avaliação comparável, fixe um modelo com --modelo.", file=sys.stderr)
+    juiz = criar_provedor(args.provedor, args.juiz) if args.juiz else provedor
+    if not args.juiz and not args.sem_juiz:
+        print("Aviso: sem --juiz, o próprio modelo avaliado julga os passos. "
+              "Para comparar modelos, use o mesmo --juiz em todas as avaliações.", file=sys.stderr)
 
     saida = Path(args.saida)
     saida.mkdir(parents=True, exist_ok=True)
@@ -204,7 +212,7 @@ def main():
             continue
         print(f"[{i}/{len(teste)}] {original['id']} {cortar(original['titulo'], 50)}", flush=True)
         try:
-            item = avaliar_um(base, original, provedor, not args.sem_juiz)
+            item = avaliar_um(base, original, provedor, juiz, not args.sem_juiz)
         except Exception as erro:
             item = {"id": original["id"], "erro": f"{type(erro).__name__}: {cortar(str(erro), 200)}"}
             print(f"  erro: {item['erro']}", file=sys.stderr)
@@ -222,7 +230,8 @@ def main():
         if "erro" in item and item["id"] not in feitos:
             erros.append(item)
 
-    (saida / "relatorio.md").write_text(relatorio(linhas, erros, base, teste, f"{provedor.nome}: {provedor.modelo}"), encoding="utf-8")
+    (saida / "relatorio.md").write_text(
+        relatorio(linhas, erros, base, teste, f"{provedor.nome}: {provedor.modelo}", juiz.modelo), encoding="utf-8")
     with (saida / "resultados.csv").open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
         w.writerow(["id", "titulo"] + [f"{c}_real" for c in CAMPOS] + [f"{c}_agente" for c in CAMPOS]
