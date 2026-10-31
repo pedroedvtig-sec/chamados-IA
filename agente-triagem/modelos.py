@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import time
+import unicodedata
 import urllib.error
 import urllib.request
 
@@ -20,6 +21,12 @@ def _json_do_texto(texto):
         raise
 
 
+def sem_acento(valor):
+    if not isinstance(valor, str):
+        return valor
+    return "".join(c for c in unicodedata.normalize("NFKD", valor) if not unicodedata.combining(c)).strip().lower()
+
+
 def _problemas(argumentos, esquema):
     if not isinstance(argumentos, dict):
         return {"campos_faltando": list(esquema.get("required", []))}
@@ -27,7 +34,8 @@ def _problemas(argumentos, esquema):
     faltando = [c for c in esquema.get("required", []) if argumentos.get(c) in (None, "", [])]
     vazados = [c for c, v in argumentos.items() if isinstance(v, str) and "<parameter" in v]
     invalidos = {c: propriedades[c]["enum"] for c, v in argumentos.items()
-                 if c in propriedades and "enum" in propriedades[c] and v not in (None, "") and v not in propriedades[c]["enum"]}
+                 if c in propriedades and "enum" in propriedades[c] and v not in (None, "")
+                 and sem_acento(v) not in {sem_acento(e) for e in propriedades[c]["enum"]}}
     problemas = {}
     if faltando:
         problemas["campos_faltando"] = faltando
@@ -112,6 +120,7 @@ class OpenRouter:
         mensagens = [{"role": "system", "content": sistema}, {"role": "user", "content": pedido}]
         escolha = "auto"
         rastro, chamadas = [], 0
+        ultimo_problema = None
         for _ in range(max_rodadas):
             if escolha != "auto" and not self.aceita_forcar:
                 escolha = "auto"
@@ -145,6 +154,7 @@ class OpenRouter:
                     problemas = _problemas(argumentos, esquema_final)
                     if not problemas:
                         return argumentos, rastro, chamadas
+                    ultimo_problema = problemas
                     mensagens.append({"role": "tool", "tool_call_id": p.get("id", nome), "content": json.dumps({
                         "erro": "chamada inválida: os argumentos precisam ser um JSON válido, com cada campo separado, "
                                 "sem marcação <parameter> dentro dos textos e só com os valores permitidos",
@@ -155,7 +165,11 @@ class OpenRouter:
                 saida = executar(nome, argumentos)
                 rastro.append({"funcao": nome, "argumentos": argumentos})
                 mensagens.append({"role": "tool", "tool_call_id": p.get("id", nome), "content": json.dumps(saida, ensure_ascii=False)})
-        raise RuntimeError(f"o agente não finalizou em {max_rodadas} rodadas")
+        if ultimo_problema:
+            motivo = f"a triagem final veio inválida: {json.dumps(ultimo_problema, ensure_ascii=False)[:300]}"
+        else:
+            motivo = "ferramentas usadas: " + (", ".join(r["funcao"] for r in rastro) or "nenhuma")
+        raise RuntimeError(f"o agente não finalizou em {max_rodadas} rodadas ({motivo})")
 
     def json(self, sistema, pedido, esquema, tentativas=3):
         mensagens = [{"role": "system", "content": sistema}, {"role": "user", "content": pedido}]

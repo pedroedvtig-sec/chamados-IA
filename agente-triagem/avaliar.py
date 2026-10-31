@@ -29,14 +29,17 @@ ESQUEMA_JUIZ = {
 }
 
 
-def julgar(juiz, original, passos):
+def julgar(juiz, original, passos, documentacao=""):
     pedido = (f"Problema: {original['titulo']} — {cortar(original['descricao'], 600)}\n\n"
               f"O que o técnico fez: {cortar(original['resolucao'] or original['descricao'], 1200)}\n\n"
+              + (f"Documentação que o técnico ligou a este chamado: {cortar(documentacao, 1500)}\n\n" if documentacao else "") +
               "Passos sugeridos pelo agente:\n" + "\n".join(f"{i}. {p}" for i, p in enumerate(passos, 1)))
     return juiz.json(JUIZ, pedido, ESQUEMA_JUIZ)
 
 
-def tem_registro(original):
+def tem_registro(original, documentacao=""):
+    if documentacao:
+        return True
     return len(f"{original['descricao']} {original['resolucao']}".strip()) >= 60 and bool(original["resolucao"])
 
 
@@ -66,10 +69,12 @@ def avaliar_um(base, original, provedor, juiz, com_juiz):
     }
     if not com_juiz:
         linha["juiz"] = {"veredito": "nao_avaliado", "motivo": ""}
-    elif not tem_registro(original):
-        linha["juiz"] = {"veredito": "sem_registro", "motivo": "o chamado não tem a resolução escrita"}
     else:
-        linha["juiz"] = julgar(juiz, original, linha["passos_sugeridos"])
+        documentacao = " | ".join(f"{d['titulo']}: {d['texto']}" for d in base.dossies_por_chamado.get(original["id"].upper(), []))
+        if not tem_registro(original, documentacao):
+            linha["juiz"] = {"veredito": "sem_registro", "motivo": "o chamado não tem a resolução escrita"}
+        else:
+            linha["juiz"] = julgar(juiz, original, linha["passos_sugeridos"], documentacao)
     return linha
 
 
@@ -214,7 +219,7 @@ def main():
         try:
             item = avaliar_um(base, original, provedor, juiz, not args.sem_juiz)
         except Exception as erro:
-            item = {"id": original["id"], "erro": f"{type(erro).__name__}: {cortar(str(erro), 200)}"}
+            item = {"id": original["id"], "erro": f"{type(erro).__name__}: {cortar(str(erro), 400)}"}
             print(f"  erro: {item['erro']}", file=sys.stderr)
         with arquivo.open("a", encoding="utf-8") as f:
             f.write(json.dumps(item, ensure_ascii=False) + "\n")
@@ -224,11 +229,12 @@ def main():
 
     ordem = [c["id"] for c in teste]
     linhas = [feitos[i] for i in ordem if i in feitos]
-    erros = []
+    ultimos_erros = {}
     for linha in arquivo.read_text(encoding="utf-8").splitlines():
         item = json.loads(linha)
         if "erro" in item and item["id"] not in feitos:
-            erros.append(item)
+            ultimos_erros[item["id"]] = item
+    erros = [ultimos_erros[i] for i in ordem if i in ultimos_erros]
 
     (saida / "relatorio.md").write_text(
         relatorio(linhas, erros, base, teste, f"{provedor.nome}: {provedor.modelo}", juiz.modelo), encoding="utf-8")

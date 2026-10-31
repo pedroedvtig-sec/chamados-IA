@@ -6,12 +6,13 @@ import time
 from datetime import datetime, timezone
 
 from base import RE_MAQUINA, Base, Ferramentas, cortar
-from modelos import criar_provedor
+from modelos import criar_provedor, sem_acento
 
 DADOS_PADRAO = os.environ.get("DADOS_TRIAGEM", "~/dados_privados/dados_anonimizados")
 
 TIPOS = ["incidente", "solicitacao", "tarefa"]
 PRIORIDADES = ["baixa", "média", "alta", "crítica"]
+PRIORIDADES_MODELO = [sem_acento(p) for p in PRIORIDADES]
 
 SISTEMA = """Você é o agente de triagem do suporte de TI de uma empresa com um único analista de suporte.
 Você recebe um chamado novo e devolve a triagem completa chamando a função finalizar_triagem.
@@ -34,10 +35,11 @@ Categoria:
 Prioridade = impacto × urgência.
 Impacto: empresa inteira > setor inteiro ou serviço que vários usam > uma pessoa. Use o "Mapa de impacto" do pedido para saber quais máquinas e serviços afetam muita gente.
 Urgência: parado sem alternativa > atrapalha mas tem contorno > sem pressa.
-- crítica: empresa ou setor inteiro parado; risco de segurança ativo.
-- alta: setor afetado mas com contorno; uma pessoa parada sem alternativa; desligamento de colaborador (os acessos precisam ser revogados logo); solicitação de máquina para colaborador novo.
-- média: uma pessoa com o trabalho atrapalhado, mas com contorno; pedido comum com prazo normal.
+- critica: empresa ou setor inteiro parado; risco de segurança ativo.
+- alta: setor afetado mas com contorno; uma pessoa parada sem alternativa; desligamento de colaborador (os acessos precisam ser revogados logo); solicitação de máquina para colaborador novo; backup antes de formatar ou trocar a máquina (perder arquivos não tem volta, e já pediram arquivos depois).
+- media: uma pessoa com o trabalho atrapalhado, mas com contorno; pedido comum com prazo normal.
 - baixa: dúvida, ajuste, padronização ou melhoria sem impacto no trabalho.
+Escreva a prioridade sem acento: baixa, media, alta ou critica.
 Julgue pelo problema no momento em que foi relatado. Muitos chamados são registrados depois de resolvidos ("resetei", "deu certo"): isso não diminui a prioridade.
 Na dúvida entre duas, escolha a menor e explique.
 
@@ -84,7 +86,7 @@ def declaracoes(base):
                  "subcategoria": {"type": "string", "description": "Subcategoria da MESMA categoria, ou vazio. " + "; ".join(
                      f"{cat}: {', '.join(subs)}" for cat, subs in base.subs_por_categoria.items() if subs)},
                  "tipo": {"type": "string", "enum": TIPOS},
-                 "prioridade": {"type": "string", "enum": PRIORIDADES},
+                 "prioridade": {"type": "string", "enum": PRIORIDADES_MODELO},
                  "motivo_prioridade": texto,
                  "recorrencia": {"type": "string", "enum": ["primeira_vez", "recorrente"]},
                  "chamados_relacionados": {"type": "array", "items": texto},
@@ -145,6 +147,8 @@ def triar(chamado, ferramentas, provedor, max_rodadas=8):
     resultado, rastro, chamadas = provedor.agente(
         SISTEMA, montar_pedido(chamado, ferramentas.base), declaracoes(ferramentas.base),
         executar, "finalizar_triagem", max_rodadas)
+    volta = dict(zip(PRIORIDADES_MODELO, PRIORIDADES))
+    resultado["prioridade"] = volta.get(sem_acento(resultado.get("prioridade", "")), resultado.get("prioridade", ""))
     resultado["ferramentas_usadas"] = rastro
     resultado["chamadas_ao_modelo"] = chamadas
     resultado["segundos"] = round(time.time() - inicio, 1)

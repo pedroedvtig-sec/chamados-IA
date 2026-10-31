@@ -87,6 +87,13 @@ class Base:
         self.procedimentos = self._procedimentos(pasta / "procedimentos_rows.csv", pasta / "procedimentos_n1.json")
         self.dossies = self._dossies(pasta / "dossies_rows.csv")
         self.por_id = {c["id"]: c for c in self.chamados}
+        self.procs_por_id = {p["id"]: p for p in self.procedimentos}
+        self.dossies_por_chamado = {}
+        for d in self.dossies:
+            for ref in d["chamados"]:
+                id_chamado = ref.get("id") or ref.get("ticket") if isinstance(ref, dict) else ref
+                if id_chamado:
+                    self.dossies_por_chamado.setdefault(str(id_chamado).upper(), []).append(d)
         self.categorias = sorted({c["categoria"] for c in self.chamados if c["categoria"]})
         self.subcategorias = sorted({c["subcategoria"] for c in self.chamados if c["subcategoria"]})
         self.subs_por_categoria = {cat: sorted({c["subcategoria"] for c in self.chamados
@@ -204,6 +211,20 @@ class Ferramentas:
             return False
         return not (self.corte and chamado["data"] and chamado["data"] >= self.corte)
 
+    def _dossie_visivel(self, d):
+        return not (self.corte and d["data"] and d["data"] >= self.corte)
+
+    def documentacao_ligada(self, id_chamado):
+        return [d for d in self.base.dossies_por_chamado.get(id_chamado.upper(), []) if self._dossie_visivel(d)]
+
+    def procedimentos_ligados(self, chamado):
+        ids = list(chamado["procedimentos"]) + [p["id"] for p in self.base.procedimentos if chamado["id"] in p["chamados_que_usaram"]]
+        vistos = []
+        for i in ids:
+            if i in self.base.procs_por_id and i not in vistos:
+                vistos.append(i)
+        return [self.base.procs_por_id[i] for i in vistos]
+
     def buscar_procedimentos(self, consulta):
         achados = self.base.idx_procs.buscar(consulta, k=3)
         achados = [(s, i) for s, i in achados if s >= achados[0][0] * 0.4] if achados else []
@@ -221,19 +242,29 @@ class Ferramentas:
         achados = self.base.idx_chamados.buscar(
             consulta, k=5,
             filtro=lambda i: self._visivel(self.base.chamados[i]) and self.base.chamados[i]["status"] != "cancelado")
-        resultados = [{
-            "id": c["id"],
-            "data": c["data"].date().isoformat() if c["data"] else "",
-            "titulo": c["titulo"],
-            "categoria": c["categoria"],
-            "tipo": c["tipo"],
-            "prioridade": c["prioridade"],
-            "descricao": cortar(c["descricao"], 300),
-            "como_foi_resolvido": cortar(c["resolucao"], 500) or "(sem registro de resolução)",
-        } for _, c in ((s, self.base.chamados[i]) for s, i in achados)]
+        resultados, ja_mostrados = [], set()
+        for _, c in ((s, self.base.chamados[i]) for s, i in achados):
+            item = {
+                "id": c["id"],
+                "data": c["data"].date().isoformat() if c["data"] else "",
+                "titulo": c["titulo"],
+                "categoria": c["categoria"],
+                "tipo": c["tipo"],
+                "prioridade": c["prioridade"],
+                "descricao": cortar(c["descricao"], 300),
+                "como_foi_resolvido": cortar(c["resolucao"], 500) or "(sem registro de resolução)",
+            }
+            procs = self.procedimentos_ligados(c)
+            if procs:
+                item["procedimentos_ligados"] = [{"id": p["id"], "titulo": p["titulo"]} for p in procs]
+            docs = [d for d in self.documentacao_ligada(c["id"]) if d["id"] not in ja_mostrados]
+            if docs:
+                item["documentacao_ligada"] = [{"titulo": d["titulo"], "resumo": cortar(d["texto"], 600)} for d in docs[:2]]
+                ja_mostrados.update(d["id"] for d in docs[:2])
+            resultados.append(item)
         dossies = self.base.idx_dossies.buscar(
-            consulta, k=2, filtro=lambda i: not (self.corte and self.base.dossies[i]["data"]
-                                                and self.base.dossies[i]["data"] >= self.corte))
+            consulta, k=2, filtro=lambda i: self._dossie_visivel(self.base.dossies[i])
+                                            and self.base.dossies[i]["id"] not in ja_mostrados)
         return {
             "chamados": resultados,
             "investigacoes": [{"titulo": d["titulo"], "resumo": cortar(d["texto"], 700)}
@@ -259,6 +290,8 @@ class Ferramentas:
                 "mesmo_usuario": bool(usuarios & set(c["usuarios"])),
                 "mesma_maquina": bool(maquinas & set(c["maquinas"])),
                 "resolucao": cortar(c["resolucao"], 160),
+                **({"documentacao_ligada": [d["titulo"] for d in self.documentacao_ligada(c["id"])]}
+                   if self.documentacao_ligada(c["id"]) else {}),
             } for c in reversed(achados)],
         }
 

@@ -4,3 +4,8 @@ gabarito*.csv
 .env
 __pycache__/
 .venv/
+avaliacao*/
+*.log
+teste_*.py
+.idea/
+.directory
