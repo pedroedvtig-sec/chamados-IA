@@ -4,8 +4,9 @@ Sou o único analista de suporte de TI de uma empresa de consultoria. Todo chama
 
 **Resumo**
 
-- Acerta a categoria em **68%** dos chamados e o tipo em **79%**. Chutar sempre a resposta mais comum acerta 41% e 47%. *(DeepSeek, avaliação v1: a tabela final está em [Resultados](#resultados).)*
-- Os passos sugeridos foram julgados compatíveis com o que eu fiz de verdade em **86%** dos casos que tinham a resolução escrita.
+- Acerta a categoria em **78%** dos chamados e o tipo em **85%**, contra 45% e 50% de quem chuta sempre a resposta mais comum. *(DeepSeek V4.1 Flash, 40 chamados reais: tabela completa em [Resultados](#resultados).)*
+- Os passos sugeridos foram julgados compatíveis com o que eu fiz de verdade em **83%** dos casos que tinham a resolução escrita.
+- Custa cerca de **US$ 0,002 por chamado**: a avaliação inteira, com 40 chamados, saiu por menos de 9 centavos de dólar.
 - Nenhum dado da empresa sai sem anonimização, e nenhum dado fica neste repositório.
 - O mesmo raciocínio roda dentro do meu sistema de chamados: registrar um chamado com IA levou **29 s** no primeiro teste. ✍️ *Atualizar com a mediana medida em 1 a 2 semanas de uso.*
 
@@ -93,19 +94,31 @@ A prioridade é julgada pelo que se sabia **quando o chamado foi aberto**. Um dr
 ### Resultados
 
 <!-- resultados:inicio -->
-> ⏳ Avaliação final rodando. A tabela é preenchida pelo `preencher_resultados.py`.
+|  | DeepSeek V4.1 Flash | Claude Haiku 5.5 | linha de base |
+| --- | --- | --- | --- |
+| chamados concluídos | 40/40 | 40/40 | — |
+| categoria | 78% (31/40) | 72% (29/40) | 45% |
+| subcategoria | 68% (17/25) | 56% (14/25) | 8% |
+| tipo | 85% (34/40) | 82% (33/40) | 50% |
+| prioridade | 70% (28/40) | 65% (26/40) | 45% |
+| passos compatíveis (juiz) | 83% (19) | 70% (16) | — |
+| chamadas ao modelo por chamado | 2,8 | 3,6 | — |
+| segundos por chamado | 19,0 | 18,0 | — |
+| custo por chamado | US$ 0,0021 | US$ 0,0041 | — |
+
+Os passos só são julgados nos chamados que têm a resolução escrita (17 não tinham). A linha de base é chutar sempre a resposta mais comum nos chamados anteriores. Juiz: `google/gemini-3.5-flash`, o mesmo para todos os modelos.
 <!-- resultados:fim -->
 
-**De v1 para a versão final.** Na primeira avaliação com o DeepSeek, 6 dos 40 chamados falharam, todos pelo mesmo motivo: o modelo corrompia "média" em `mຝia`, e a conferência recusava o valor até esgotar as tentativas. A correção foi mandar as prioridades ao modelo sem acento e converter de volta no código.
+**De v1 para a versão final.** Na primeira avaliação com o DeepSeek, 6 dos 40 chamados falharam, todos pelo mesmo motivo: o modelo corrompia "média" em `mຝia`, e a conferência recusava o valor até esgotar as tentativas. A correção foi mandar as prioridades ao modelo sem acento e converter de volta no código. Com isso, os 40 chamados foram concluídos e o acerto subiu em todos os campos: categoria de 68% para 78%, tipo de 79% para 85% e prioridade de 65% para 70%.
 
-✍️ *Qual modelo você escolheu e por quê: uma ou duas frases com os números da tabela (o mais barato que acerta o suficiente, o mais confiável etc.).*
+**Por que o DeepSeek.** Ele acertou mais que o Claude Haiku 5.5 em todos os campos (categoria 78% × 72%, passos compatíveis 83% × 70%), precisou de menos chamadas ao modelo por chamado (2,8 × 3,6) e custou cerca de metade (US$ 0,0021 × US$ 0,0041 por chamado). ✍️ *Revise com as suas palavras.*
 
 ## Onde ele erra
 
 - **"Impressão" virou impressora.** O agente não conhecia o jargão interno. A solução foi o glossário, que vai junto no pedido quando o termo aparece.
 - **Valores que não existem.** Um modelo devolveu a prioridade `mຝia`. Outro vazou campos para dentro dos textos (`<parameter name="confianca">`). A solução foi a conferência no código, que devolve o erro ao modelo e pede de novo.
 - **"Pediu" virou "feito".** No sistema de chamados, "pediu pra resetar a senha" foi salvo como resolvido. A solução foi uma regra explícita: pedido não é ação feita, e na dúvida o passo fica pendente.
-- **Prioridade rebaixada porque "já foi resolvido".** Backup, termo e troca de cartucho caíram para média ou baixa porque a anotação dizia que estava feito, mesmo com o prompt mandando julgar pelo momento da abertura. **Ainda em aberto.** É a maior fonte de erro de prioridade na avaliação.
+- **Prioridade rebaixada porque "já foi resolvido".** Backup, termo e troca de cartucho caíram para média ou baixa porque a anotação dizia que estava feito, mesmo com o prompt mandando julgar pelo momento da abertura. **Ainda em aberto.** É a maior fonte de erro de prioridade, e a prioridade é o campo com menor acerto na avaliação final (70%).
 
 ## No dia a dia
 
