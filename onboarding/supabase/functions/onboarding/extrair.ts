@@ -149,6 +149,17 @@ export function esconder(texto: string, nome: string, outrosNomes: string[], emp
   return { texto: t, trocas };
 }
 
+const APARELHO_DE_CONTATO = /\b(celular|smartphone|telefone|aparelho)\b/i;
+const LINHA_DE_CONTATO = /^[ \t>*-]*(celular|cel|telefone|tel|fone|whats(app)?|contato)\s*:/i;
+
+/* "Celular: (11) 9...." é o contato do colaborador, não um pedido de aparelho.
+   Só mantém o celular se o e-mail falar dele fora das linhas de contato. */
+export function equipamentosPedidos(equipamentos: string[], texto: string): string[] {
+  const foraDoContato = (texto || "").split(/\r?\n/).filter((l) => !LINHA_DE_CONTATO.test(l)).join("\n");
+  const pedeAparelho = /\b(celular|smartphone|aparelho telef[oô]nico|telefone corporativo)\b/i.test(foraDoContato);
+  return equipamentos.filter((e) => pedeAparelho || !APARELHO_DE_CONTATO.test(e));
+}
+
 export function checklist(usuario: string, email: string, setor: string, equipamentos: string[], acessos: string[]): string[] {
   return [
     usuario ? `Criar o usuário ${usuario} no AD${setor ? ` e colocar no grupo do setor ${setor}` : ""}` : "Definir e criar o usuário no AD",

@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
-  acesso, checklist, dataBr, dataDeInicio, DEPARTAMENTOS, esconder, nomeDoEmail, normalizar, semAssinatura, setorDoTexto,
+  acesso, checklist, dataBr, dataDeInicio, DEPARTAMENTOS, equipamentosPedidos, esconder, nomeDoEmail, normalizar, semAssinatura, setorDoTexto,
 } from "./extrair.ts";
 
 const TOKEN = Deno.env.get("ONBOARDING_TOKEN") ?? "";
@@ -19,7 +19,7 @@ Regras:
 - setor: um dos valores permitidos, ou vazio se o e-mail não deixa claro.
 - cargo: como o e-mail descreve, ou vazio.
 - data_inicio: AAAA-MM-DD. Datas relativas ("segunda que vem") contam a partir da data de hoje informada. Vazio se não houver.
-- equipamentos: só o que foge do padrão (notebook, mouse, teclado, headset). Ex.: segundo monitor, celular, desktop no lugar do notebook.
+- equipamentos: só o que foge do padrão (notebook, mouse, teclado, headset). Ex.: segundo monitor, celular corporativo, desktop no lugar do notebook. Uma linha "Celular: [TELEFONE]" ou "Telefone: [TELEFONE]" é o contato do colaborador, não um pedido de aparelho.
 - acessos: sistemas, pastas ou softwares específicos pedidos.
 - observacoes: só algo que o técnico precise saber e que ainda não esteja em setor, cargo, data, equipamentos ou acessos, em uma frase. Nunca comente marcadores, dados ocultos ou anonimização. Na dúvida, vazio.
 - faltando: o que falta para preparar tudo (ex.: data de início, setor). Não liste o nome nem dados pessoais.`;
@@ -186,7 +186,7 @@ async function criar(sb: SupabaseClient, corpo: Record<string, unknown>) {
   if (login) avisos.push(...login.avisos);
   if (nome && !DOMINIO) avisos.push("DOMINIO_EMAIL não configurado: usuário e e-mail não foram calculados");
 
-  const equipamentos = ia?.equipamentos ?? [];
+  const equipamentos = equipamentosPedidos(ia?.equipamentos ?? [], texto);
   const acessos = ia?.acessos ?? [];
   const pendentes = checklist(login?.usuario ?? "", login?.email ?? "", setor, equipamentos, acessos);
   const agora = Date.now();
@@ -222,8 +222,11 @@ async function criar(sb: SupabaseClient, corpo: Record<string, unknown>) {
       categoria: "hardware",
       subcategoria: "notebooks",
       prioridade: "alta",
+      impacto: "baixo",
+      urgencia: "alta",
       tipo: "solicitacao",
       status: dataInicio ? "agendado" : "aberto",
+      historico_status: [{ para: dataInicio ? "agendado" : "aberto", em: new Date().toISOString(), criacao: true }],
       data_agendamento: dataInicio ? `${dataInicio}T09:00:00-03:00` : null,
       procedimentos: procedimentosDoSetor(procs.data ?? [], setor),
       timeline,

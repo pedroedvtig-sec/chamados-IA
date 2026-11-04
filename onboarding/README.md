@@ -94,6 +94,16 @@ deno test extrair_test.ts
 
 ✍️ *Depois de alguns onboardings reais: tempo entre o e-mail do RH e o chamado aberto (antes × agora), passos esquecidos, e quantas vezes o aviso de login repetido apareceu.*
 
+## Onde ele erra
+
+**Celular de contato lido como pedido de aparelho.** No teste, o e-mail tinha a linha `Celular: (11) 9....`. O anonimizador trocou o número por `[TELEFONE]` e a IA leu "Celular: [TELEFONE]" como pedido de um celular corporativo: o checklist ganhou "Providenciar: celular". Ninguém tinha pedido aparelho.
+
+Corrigi em duas camadas, porque a IA sozinha não é garantia:
+- **No prompt:** a regra de equipamentos agora diz que uma linha "Celular:" ou "Telefone:" é contato, não pedido.
+- **No código:** `equipamentosPedidos()` descarta celular/telefone da lista da IA quando o e-mail só fala de celular nas linhas de contato. Se o RH escrever "vai precisar de um celular corporativo" em outra linha, o pedido continua. O caso está nos testes.
+
+O e-mail real do RH não costuma trazer telefone, mas é o tipo de erro que só aparece testando com dados parecidos com os reais. Por isso a função devolve exatamente o que foi enviado à IA: dá para ver de onde veio o engano.
+
 ## Limitações
 
 - O nome só é reconhecido no assunto ("solicitação de máquina - Nome") ou numa linha "Nome:". Fora disso, o chamado é aberto como "nome não identificado" e o rascunho pede o nome ao RH.

@@ -1,5 +1,5 @@
 import { deepStrictEqual as assertEquals } from "node:assert";
-import { acesso, checklist, dataDeInicio, esconder, nomeDoEmail, semAssinatura, setorDoTexto } from "./extrair.ts";
+import { acesso, checklist, dataDeInicio, equipamentosPedidos, esconder, nomeDoEmail, semAssinatura, setorDoTexto } from "./extrair.ts";
 
 const HOJE = new Date(Date.UTC(2026, 9, 31));
 
@@ -53,4 +53,12 @@ Deno.test("checklist", () => {
   assertEquals(passos[0], "Criar o usuário msouza no AD e colocar no grupo do setor OP");
   assertEquals(passos.includes("Providenciar: segundo monitor"), true);
   assertEquals(passos.includes("Liberar acesso: pasta do financeiro"), true);
+});
+
+Deno.test("celular de contato não vira pedido de aparelho", () => {
+  const contato = "Setor: fiscal\nCelular: (11) 98765-4321\nInício: 10/11";
+  assertEquals(equipamentosPedidos(["celular", "segundo monitor"], contato), ["segundo monitor"]);
+  assertEquals(equipamentosPedidos(["Celular"], "Telefone: [TELEFONE]"), []);
+  const pedido = "Setor: comercial\nCelular: (11) 98765-4321\nVai precisar de um celular corporativo.";
+  assertEquals(equipamentosPedidos(["celular corporativo"], pedido), ["celular corporativo"]);
 });
