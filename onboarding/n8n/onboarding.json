@@ -3,7 +3,15 @@
   "nodes": [
     {
       "parameters": {
-        "pollTimes": { "item": [{ "mode": "everyX", "value": 5, "unit": "minutes" }] },
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 5,
+              "unit": "minutes"
+            }
+          ]
+        },
         "simple": false,
         "filters": {
           "q": "subject:(\"solicitação de máquina\" OR \"solicitacao de maquina\") newer_than:14d",
@@ -15,7 +23,10 @@
       "name": "E-mail do RH",
       "type": "n8n-nodes-base.gmailTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -26,24 +37,37 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ acao: 'criar', assunto: $json.subject || '', corpo: $json.text || '', mensagem_id: $json.id, remetente_nome: ($json.from && $json.from.value && $json.from.value[0] && $json.from.value[0].name) || '' }) }}",
-        "options": { "timeout": 60000 }
+        "options": {
+          "timeout": 60000
+        }
       },
       "id": "6f1d0b1e-1a01-4c11-9a01-000000000002",
       "name": "Criar chamado",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [240, 0]
+      "position": [
+        240,
+        0
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "c1",
               "leftValue": "={{ $json.duplicado }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "false", "singleValue": true }
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -54,7 +78,10 @@
       "name": "É novo?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [480, 0]
+      "position": [
+        480,
+        0
+      ]
     },
     {
       "parameters": {
@@ -70,7 +97,10 @@
       "name": "Rascunho de resposta ao RH",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [720, -100]
+      "position": [
+        720,
+        -100
+      ]
     },
     {
       "parameters": {
@@ -81,17 +111,30 @@
       "name": "Marcar como lido",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [960, 0]
+      "position": [
+        960,
+        0
+      ]
     },
     {
       "parameters": {
-        "rule": { "interval": [{ "field": "cronExpression", "expression": "0 8 * * 1-5" }] }
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1-5"
+            }
+          ]
+        }
       },
       "id": "6f1d0b1e-1a01-4c11-9a01-000000000006",
       "name": "Dias úteis às 8h",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 300]
+      "position": [
+        0,
+        300
+      ]
     },
     {
       "parameters": {
@@ -108,18 +151,29 @@
       "name": "Onboardings próximos",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [240, 300]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
           "conditions": [
             {
               "id": "c2",
-              "leftValue": "={{ $json.itens.length }}",
-              "rightValue": 0,
-              "operator": { "type": "number", "operation": "gt" }
+              "leftValue": "={{ $json.enviar }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -130,7 +184,10 @@
       "name": "Tem alguém?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [480, 300]
+      "position": [
+        480,
+        300
+      ]
     },
     {
       "parameters": {
@@ -138,29 +195,109 @@
         "subject": "={{ $json.assunto }}",
         "emailType": "text",
         "message": "={{ $json.resumo_texto }}",
-        "options": { "appendAttribution": false }
+        "options": {
+          "appendAttribution": false
+        }
       },
       "id": "6f1d0b1e-1a01-4c11-9a01-000000000009",
       "name": "Lembrete por e-mail",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.1,
-      "position": [720, 300]
+      "position": [
+        720,
+        300
+      ]
     }
   ],
   "connections": {
-    "E-mail do RH": { "main": [[{ "node": "Criar chamado", "type": "main", "index": 0 }]] },
-    "Criar chamado": { "main": [[{ "node": "É novo?", "type": "main", "index": 0 }]] },
-    "É novo?": {
+    "E-mail do RH": {
       "main": [
-        [{ "node": "Rascunho de resposta ao RH", "type": "main", "index": 0 }],
-        [{ "node": "Marcar como lido", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Criar chamado",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Rascunho de resposta ao RH": { "main": [[{ "node": "Marcar como lido", "type": "main", "index": 0 }]] },
-    "Dias úteis às 8h": { "main": [[{ "node": "Onboardings próximos", "type": "main", "index": 0 }]] },
-    "Onboardings próximos": { "main": [[{ "node": "Tem alguém?", "type": "main", "index": 0 }]] },
-    "Tem alguém?": { "main": [[{ "node": "Lembrete por e-mail", "type": "main", "index": 0 }]] }
+    "Criar chamado": {
+      "main": [
+        [
+          {
+            "node": "É novo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É novo?": {
+      "main": [
+        [
+          {
+            "node": "Rascunho de resposta ao RH",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar como lido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rascunho de resposta ao RH": {
+      "main": [
+        [
+          {
+            "node": "Marcar como lido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dias úteis às 8h": {
+      "main": [
+        [
+          {
+            "node": "Onboardings próximos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Onboardings próximos": {
+      "main": [
+        [
+          {
+            "node": "Tem alguém?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tem alguém?": {
+      "main": [
+        [
+          {
+            "node": "Lembrete por e-mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1", "timezone": "America/Sao_Paulo" },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
   "pinData": {}
 }

@@ -2,6 +2,7 @@ import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2";
 import {
   acesso, checklist, dataBr, dataDeInicio, DEPARTAMENTOS, equipamentosPedidos, esconder, nomeDoEmail, normalizar, semAssinatura, setorDoTexto,
 } from "./extrair.ts";
+import { fmtHoras, type Historico, slaDe } from "./sla.ts";
 
 const TOKEN = Deno.env.get("ONBOARDING_TOKEN") ?? "";
 const DONO = Deno.env.get("ONBOARDING_USER_ID") ?? "";
@@ -271,11 +272,41 @@ async function lembretes(sb: SupabaseClient, dias: number) {
   const blocos = itens.map((i) =>
     `${i.id} · ${i.nome}${i.setor ? ` (${i.setor})` : ""} · início ${i.inicio}${i.atrasado ? " · JÁ PASSOU" : ""}\n` +
     (i.pendentes.length ? i.pendentes.map((p) => `  [ ] ${p}`).join("\n") : "  tudo feito, falta só fechar o chamado"));
+
+  const sla = await slaEmAlerta(sb);
+  const partes: string[] = [];
+  if (sla.length) {
+    partes.push("SLA — chamados que pedem atenção hoje\n" + sla.map((s) =>
+      `${s.estourado ? "ESTOURADO" : "em risco "} ${s.id} · ${s.titulo} · ${s.prioridade} · ` +
+      (s.estourado ? `passou ${fmtHoras(-s.restante)} da meta de ${s.meta}h` : `restam ${fmtHoras(s.restante)} de ${s.meta}h`) +
+      (s.pausado ? " (relógio parado)" : "")).join("\n"));
+  }
+  if (itens.length) partes.push(`Onboarding — começando em até ${dias} dia(s)\n\n` + blocos.join("\n\n"));
+
+  const estourados = sla.filter((s) => s.estourado).length;
+  const assunto = [
+    estourados ? `${estourados} chamado(s) fora do SLA` : sla.length ? `${sla.length} chamado(s) em risco de SLA` : "",
+    itens.length ? `${itens.length} onboarding(s) em até ${dias} dia(s)` : "",
+  ].filter(Boolean).join(" · ");
   return {
-    ok: true, itens,
-    assunto: itens.length ? `Onboarding: ${itens.length} colaborador(es) começando em até ${dias} dia(s)` : "",
-    resumo_texto: blocos.join("\n\n"),
+    ok: true, itens, sla,
+    enviar: itens.length > 0 || sla.length > 0,
+    assunto,
+    resumo_texto: partes.join("\n\n————\n\n"),
   };
+}
+
+/* chamados abertos com relógio (v29+) que estão estourados ou já usaram 80% da meta */
+async function slaEmAlerta(sb: SupabaseClient) {
+  const { data, error } = await sb.from("tickets")
+    .select("id, titulo, prioridade, tipo, status, historico_status")
+    .in("status", ["aberto", "andamento", "aguardando", "escalado", "agendado"]);
+  if (error) throw error;
+  return (data ?? [])
+    .map((t) => ({ t, s: slaDe({ ...t, historico_status: (t.historico_status ?? []) as Historico }) }))
+    .filter(({ s }) => s && (s.estourado || (s.risco && !s.pausado)))
+    .map(({ t, s }) => ({ id: t.id as string, titulo: t.titulo as string, prioridade: t.prioridade as string, ...s! }))
+    .sort((a, b) => a.restante - b.restante);
 }
 
 Deno.serve(async (req) => {

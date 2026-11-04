@@ -7,7 +7,7 @@ Esta automação faz a parte burocrática sozinha. Quando o e-mail do RH chega:
 1. **Abre o chamado no meu sistema**, já agendado para a data de início, com prioridade alta, o procedimento de configuração do setor vinculado e um checklist de tudo que falta.
 2. **Calcula o usuário e o e-mail** pelo padrão da empresa (primeira letra do nome + último sobrenome) e avisa se o login já existe.
 3. **Deixa um rascunho de resposta ao RH** no Gmail, com o número do chamado, o usuário e o que ficou faltando no e-mail. Eu reviso e envio.
-4. **Me lembra em dias úteis às 8h** de quem começa nos próximos dois dias e do que ainda está pendente.
+4. **Me lembra em dias úteis às 8h** de quem começa nos próximos dois dias e do que ainda está pendente. O mesmo e-mail lista os chamados do site **fora do SLA ou em risco** (80% da meta usada), com o tempo que passou ou que falta.
 
 ✍️ *Antes: quanto tempo levava cada onboarding só na parte de registro e resposta, e quantos por mês.*
 
@@ -29,6 +29,7 @@ função onboarding (Supabase)
 n8n: rascunho de resposta no mesmo fio do Gmail → marca o e-mail como lido
 
 n8n: dias úteis às 8h → função (acao: lembretes) → e-mail com quem começa em até 2 dias
+                                                     e os chamados estourados ou em risco de SLA
 ```
 
 **Divisão de trabalho.** O n8n só orquestra: gatilho, Gmail e agenda. A lógica e os segredos ficam numa função versionada no Git e testada. A chave da IA, a chave do banco e o domínio de e-mail nunca aparecem no workflow.
@@ -50,7 +51,9 @@ onboarding/
 │   └── functions/onboarding/
 │       ├── index.ts                     a função: criar chamado e lembretes
 │       ├── extrair.ts                   regras: nome, data, setor, anonimização, login, checklist
-│       └── extrair_test.ts              testes das regras
+│       ├── extrair_test.ts              testes das regras
+│       ├── sla.ts                       horas úteis e SLA (mesmo cálculo do site), para o lembrete
+│       └── sla_test.ts                  testes do SLA
 └── n8n/onboarding.json                  workflow para importar no n8n
 ```
 
@@ -87,7 +90,7 @@ npx supabase secrets set --project-ref SEU-PROJETO \
 
 ```bash
 cd supabase/functions/onboarding
-deno test extrair_test.ts
+deno test
 ```
 
 ## Resultado
