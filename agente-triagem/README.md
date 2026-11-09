@@ -113,6 +113,8 @@ Os passos só são julgados nos chamados que têm a resolução escrita (17 não
 
 **Por que o DeepSeek.** Ele acertou mais que o Claude Haiku 5.5 em todos os campos (categoria 78% × 72%, passos compatíveis 83% × 70%), precisou de menos chamadas ao modelo por chamado (2,8 × 3,6) e custou cerca de metade (US$ 0,0021 × US$ 0,0041 por chamado). ✍️ *Revise com as suas palavras.*
 
+**E por que o site ainda usa o Haiku.** O sistema de chamados começou a usar o Haiku antes da avaliação final. Quando os resultados saíram, ele já estava sendo medido em chamados reais (tempo de registro e aceitação das sugestões), e trocar no meio misturaria os dois modelos na mesma medição. Por isso, o Haiku fica até o fim da medição, e depois o site passa para o DeepSeek. No uso real, o Haiku teve a sugestão aceita inteira em 94% dos chamados de uma semana.
+
 ## Onde ele erra
 
 - **"Impressão" virou impressora.** O agente não conhecia o jargão interno. A solução foi o glossário, que vai junto no pedido quando o termo aparece.
