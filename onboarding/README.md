@@ -9,7 +9,7 @@ Esta automação faz a parte burocrática sozinha. Quando o e-mail do RH chega:
 3. **Deixa um rascunho de resposta ao RH** no Gmail, com o número do chamado, o usuário e o que ficou faltando no e-mail. Eu reviso e envio.
 4. **Me lembra em dias úteis às 8h** de quem começa nos próximos dois dias e do que ainda está pendente. O mesmo e-mail lista os chamados do site **fora do SLA ou em risco** (80% da meta usada), com o tempo que passou ou que falta.
 
-✍️ *Antes: quanto tempo levava cada onboarding só na parte de registro e resposta, e quantos por mês.*
+**Status:** funciona de ponta a ponta, mas só foi testado com e-mails inventados. Não foi implantado na empresa, porque depende de aprovação.
 
 ## Como funciona
 
@@ -95,7 +95,7 @@ deno test
 
 ## Resultado
 
-✍️ *Depois de alguns onboardings reais: tempo entre o e-mail do RH e o chamado aberto (antes × agora), passos esquecidos, e quantas vezes o aviso de login repetido apareceu.*
+Testado de ponta a ponta com e-mails inventados: chamado criado com checklist e procedimentos, rascunho no mesmo fio do Gmail e e-mail marcado como lido. Como a automação não foi implantada, não há medição de tempo em uso real.
 
 ## Onde ele erra
 

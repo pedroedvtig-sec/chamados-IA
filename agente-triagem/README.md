@@ -7,8 +7,8 @@ Sou o único analista de suporte de TI de uma empresa de consultoria. Todo chama
 - Acerta a categoria em **78%** dos chamados e o tipo em **85%**, contra 45% e 50% de quem chuta sempre a resposta mais comum. *(DeepSeek V4.1 Flash, 40 chamados reais: tabela completa em [Resultados](#resultados).)*
 - Os passos sugeridos foram julgados compatíveis com o que eu fiz de verdade em **83%** dos casos que tinham a resolução escrita.
 - Custa cerca de **US$ 0,002 por chamado**: a avaliação inteira, com 40 chamados, saiu por menos de 9 centavos de dólar.
-- Nenhum dado da empresa sai sem anonimização, e nenhum dado fica neste repositório.
-- O mesmo raciocínio roda dentro do meu sistema de chamados: registrar um chamado com IA levou **29 s** no primeiro teste. ✍️ *Atualizar com a mediana medida em 1 a 2 semanas de uso.*
+- O texto passa por anonimização antes de chegar ao modelo, e nenhum dado fica neste repositório.
+- O mesmo raciocínio roda dentro do meu sistema de chamados, em chamados reais. ✍ *Atualizar com a comparação de tempo ativo entre registros manuais e com IA.*
 
 ## O problema
 
@@ -18,7 +18,7 @@ Registrar um chamado direito leva cerca de **1 minuto num N1** e até **3 minuto
 - **A base de conhecimento não cresce.** Se a resolução não é escrita, o próximo caso igual começa do zero.
 - **A prioridade vira "média" por padrão.** Nos chamados recentes, quase todos ficaram com o valor inicial do formulário.
 
-✍️ *Volume: cerca de N chamados por mês, sendo uns X% de N1.*
+Volume: cerca de 90 chamados por mês entre julho e outubro de 2026. ✍ *Confirme o número e diga qual parte é N1.*
 
 ## O que ele devolve
 
@@ -118,13 +118,13 @@ Os passos só são julgados nos chamados que têm a resolução escrita (17 não
 - **"Impressão" virou impressora.** O agente não conhecia o jargão interno. A solução foi o glossário, que vai junto no pedido quando o termo aparece.
 - **Valores que não existem.** Um modelo devolveu a prioridade `mຝia`. Outro vazou campos para dentro dos textos (`<parameter name="confianca">`). A solução foi a conferência no código, que devolve o erro ao modelo e pede de novo.
 - **"Pediu" virou "feito".** No sistema de chamados, "pediu pra resetar a senha" foi salvo como resolvido. A solução foi uma regra explícita: pedido não é ação feita, e na dúvida o passo fica pendente.
-- **Prioridade rebaixada porque "já foi resolvido".** Backup, termo e troca de cartucho caíram para média ou baixa porque a anotação dizia que estava feito, mesmo com o prompt mandando julgar pelo momento da abertura. **Ainda em aberto.** É a maior fonte de erro de prioridade, e a prioridade é o campo com menor acerto na avaliação final (70%).
+- **Prioridade rebaixada porque "já foi resolvido".** Backup, termo e troca de cartucho caíram para média ou baixa porque a anotação dizia que estava feito, mesmo com o prompt mandando julgar pelo momento da abertura. **Ainda em aberto.** É a maior fonte de erro de prioridade, e a prioridade (70%) só fica acima da subcategoria (68%) na avaliação final.
 
 ## No dia a dia
 
 O mesmo raciocínio virou o campo **"Descrever com IA"** no meu sistema de chamados, inspirado no ServiceNow que eu usava num emprego anterior. Antes dele, os chamados chegavam por formulário, e-mail e planilha. Agora escrevo do meu jeito ("pediu reset, resetei") e a IA preenche o formulário e a linha do tempo, com o feito e o pendente separados.
 
-- O texto é **anonimizado antes de sair** e desanonimizado na volta. Senhas são apagadas e não voltam.
+- O texto é **anonimizado antes de sair** e desanonimizado na volta. Senhas são apagadas e não voltam. O limite: um nome só é reconhecido se já apareceu em algum chamado, por isso a tela mostra exatamente o que foi enviado à IA.
 - A chave da IA fica nos segredos do servidor, nunca no navegador.
 - Para colaborador novo, o **usuário e o e-mail são calculados por código** a partir do nome, com aviso quando o login já existe.
 
@@ -132,16 +132,18 @@ O sistema mede sozinho, sem mostrar nada na tela, quanto tempo cada registro lev
 
 | | manual | com IA |
 |---|---|---|
-| tempo mediano para registrar um chamado | ✍️ | ✍️ |
+| tempo ativo mediano para registrar um chamado | ✍ | ✍ |
 | chamados registrados no período | ✍️ | ✍️ |
 
 | Sugestão da IA mantida sem edição | % |
 |---|---|
-| categoria | ✍️ |
-| tipo | ✍️ |
-| prioridade | ✍️ |
+| categoria | 100 |
+| tipo | 100 |
+| prioridade | 100 |
 
-✍️ **A conta:** N chamados por mês × (tempo manual − tempo com IA) = **X horas por mês**. E quantos N1 passaram a ser registrados.
+Dados de 22 chamados registrados com IA, até 09/11/2026. Sou o único usuário, então manter a sugestão não prova que ela estava certa.
+
+✍ **O resultado:** compare o tempo ativo mediano dos dois modos e diga quantos N1 passaram a ser registrados. Se a IA não for mais rápida no registro, diga isso e mostre o que ela melhorou.
 
 ## Como construí
 
@@ -170,7 +172,7 @@ python avaliar.py --n 40 --gabarito gabarito.csv --modelo deepseek/deepseek-v4.1
   --juiz google/gemini-3.5-flash --saida avaliacao-deepseek
 
 # preencher a tabela de resultados deste README
-python preencher_resultados.py avaliacao-deepseek avaliacao-haiku --custo deepseek=0.0004 --custo haiku=0.003
+python preencher_resultados.py avaliacao-deepseek avaliacao-haiku --custo deepseek=VALOR --custo haiku=VALOR
 ```
 
 A avaliação salva o progresso e continua de onde parou. Para ela seguir rodando se o terminal fechar, use `nohup ... &`.
