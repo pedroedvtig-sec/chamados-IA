@@ -9,6 +9,7 @@ const DONO = Deno.env.get("ONBOARDING_USER_ID") ?? "";
 const DOMINIO = Deno.env.get("DOMINIO_EMAIL") ?? "";
 const EMPRESAS = (Deno.env.get("EMPRESAS_ANONIMIZAR") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 const MODELO = Deno.env.get("OPENROUTER_MODEL") ?? "deepseek/deepseek-v4.1-flash";
+const PREFIXO_ID = (Deno.env.get("PREFIXO_CHAMADO") ?? "").replace(/[^A-Za-z0-9]/g, "") || "CHM";
 const PREFIXO_TITULO = "Onboarding - ";
 const PROCEDIMENTO_MAQUINA = "configuracao de maquina";
 const PROCEDIMENTO_USUARIO = "configuracao de usuario - ";
@@ -111,9 +112,9 @@ async function extrairComIA(textoAnonimo: string, hoje: string): Promise<Extraca
 }
 
 async function proximoId(sb: SupabaseClient) {
-  const { data, error } = await sb.from("tickets").select("id").like("id", "BMS-%").order("id", { ascending: false }).limit(200);
+  const { data, error } = await sb.from("tickets").select("id").like("id", `${PREFIXO_ID}-%`).order("id", { ascending: false }).limit(200);
   if (error) throw error;
-  const numeros = (data ?? []).map((t) => /^BMS-(\d+)$/.exec(t.id)).filter(Boolean).map((m) => parseInt(m![1], 10));
+  const numeros = (data ?? []).map((t) => new RegExp(`^${PREFIXO_ID}-(\\d+)$`).exec(t.id)).filter(Boolean).map((m) => parseInt(m![1], 10));
   return Math.max(0, ...numeros) + 1;
 }
 
@@ -212,7 +213,7 @@ async function criar(sb: SupabaseClient, corpo: Record<string, unknown>) {
   let numero = await proximoId(sb);
   let ticketId = "";
   for (let tentativa = 0; tentativa < 5; tentativa++) {
-    ticketId = "BMS-" + String(numero).padStart(4, "0");
+    ticketId = `${PREFIXO_ID}-` + String(numero).padStart(4, "0");
     const { error } = await sb.from("tickets").insert({
       id: ticketId,
       user_id: DONO,

@@ -70,10 +70,12 @@ npx supabase secrets set --project-ref SEU-PROJETO \
   ONBOARDING_TOKEN="$TOKEN" \
   ONBOARDING_USER_ID="id-do-seu-usuário" \
   DOMINIO_EMAIL="suaempresa.com" \
+  PREFIXO_CHAMADO="CHM" \
   EMPRESAS_ANONIMIZAR="NomeDaEmpresa,NomeDoCliente"
 ```
 
 - Guarde o token: ele vai no n8n.
+- `PREFIXO_CHAMADO` é o começo dos IDs dos chamados criados (`CHM-0001`). Use o mesmo prefixo do seu sistema de chamados.
 - O id do usuário fica em **Authentication → Users** no painel do Supabase. É o dono dos chamados criados.
 - `OPENROUTER_API_KEY` e `OPENROUTER_MODEL` são os mesmos segredos da função de triagem.
 
