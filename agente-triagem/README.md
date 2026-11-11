@@ -8,7 +8,7 @@ Sou o único analista de suporte de TI de uma empresa de consultoria. Todo chama
 - Os passos sugeridos foram julgados compatíveis com o que eu fiz de verdade em **83%** dos casos que tinham a resolução escrita.
 - Custa cerca de **US$ 0,002 por chamado**: a avaliação inteira, com 40 chamados, saiu por menos de 9 centavos de dólar.
 - O texto passa por anonimização antes de chegar ao modelo, e nenhum dado fica neste repositório.
-- O mesmo raciocínio roda dentro do meu sistema de chamados, em chamados reais. ✍ *Atualizar com a comparação de tempo ativo entre registros manuais e com IA.*
+- O mesmo raciocínio roda dentro do meu sistema de chamados, em chamados reais. Não deixou o registro mais rápido, mas o chamado registrado com IA sai com cerca de 4 vezes mais passos documentados (detalhes em [No dia a dia](#no-dia-a-dia)).
 
 ## O problema
 
@@ -18,7 +18,7 @@ Registrar um chamado direito leva cerca de **1 minuto num N1** e até **3 minuto
 - **A base de conhecimento não cresce.** Se a resolução não é escrita, o próximo caso igual começa do zero.
 - **A prioridade vira "média" por padrão.** Nos chamados recentes, quase todos ficaram com o valor inicial do formulário.
 
-Volume: cerca de 90 chamados por mês entre julho e outubro de 2026. ✍ *Confirme o número e diga qual parte é N1.*
+Volume: média de 93 chamados por mês de agosto a outubro de 2026. Cerca de 1 em cada 4 é N1: reset de senha, permissão e mapeamento de rede, periférico, toner, certificado digital e instalação de aplicativos simples. A contagem é por palavra-chave no título e na descrição, então é aproximada.
 
 ## O que ele devolve
 
@@ -88,7 +88,7 @@ A prioridade é julgada pelo que se sabia **quando o chamado foi aberto**. Um dr
 - **Gabarito revisado à mão** com a régua acima: 40 chamados, sendo 18 de prioridade alta, 18 média e 4 baixa. Nenhum crítico na amostra.
 - **Linha de base:** "chutar sempre a resposta mais comum". Acertar 70% não diz nada se 70% dos chamados são da mesma categoria.
 - **Passos sugeridos** comparados com o que foi feito de verdade, por um **modelo juiz de outra empresa**, o mesmo para todos os modelos avaliados. Assim nenhum corrige a própria prova.
-- **Conferi o juiz.** Revisei os vereditos duvidosos e discordei de 1 em 4: ele é generoso quando a resolução escrita é curta. ✍️ *Atualizar depois de conferir mais vereditos na avaliação final.*
+- **Conferi o juiz.** Revisei à mão os 23 vereditos da avaliação final e concordei com todos, inclusive com os 4 em que ele reprovou os passos do agente.
 - **Chamados sem resolução escrita** são contados à parte, em vez de distorcer o resultado.
 
 ### Resultados
@@ -111,7 +111,7 @@ Os passos só são julgados nos chamados que têm a resolução escrita (17 não
 
 **De v1 para a versão final.** Na primeira avaliação com o DeepSeek, 6 dos 40 chamados falharam, todos pelo mesmo motivo: o modelo corrompia "média" em `mຝia`, e a conferência recusava o valor até esgotar as tentativas. A correção foi mandar as prioridades ao modelo sem acento e converter de volta no código. Com isso, os 40 chamados foram concluídos e o acerto subiu em todos os campos: categoria de 68% para 78%, tipo de 79% para 85% e prioridade de 65% para 70%.
 
-**Por que o DeepSeek.** Ele acertou mais que o Claude Haiku 5.5 em todos os campos (categoria 78% × 72%, passos compatíveis 83% × 70%), precisou de menos chamadas ao modelo por chamado (2,8 × 3,6) e custou cerca de metade (US$ 0,0021 × US$ 0,0041 por chamado). ✍️ *Revise com as suas palavras.*
+**Por que o DeepSeek.** Ele acertou mais que o Claude Haiku 5.5 em todos os campos (categoria 78% × 72%, passos compatíveis 83% × 70%), me traz bons guias de resolução de chamados, precisou de menos chamadas ao modelo por chamado (2,8 × 3,6) e custou cerca de metade (US$ 0,0021 × US$ 0,0041 por chamado).
 
 **E por que o site ainda usa o Haiku.** O sistema de chamados começou a usar o Haiku antes da avaliação final. Quando os resultados saíram, ele já estava sendo medido em chamados reais (tempo de registro e aceitação das sugestões), e trocar no meio misturaria os dois modelos na mesma medição. Por isso, o Haiku fica até o fim da medição, e depois o site passa para o DeepSeek. No uso real, o Haiku teve a sugestão aceita inteira em 94% dos chamados de uma semana.
 
@@ -134,8 +134,12 @@ O sistema mede sozinho, sem mostrar nada na tela, quanto tempo cada registro lev
 
 | | manual | com IA |
 |---|---|---|
-| tempo ativo mediano para registrar um chamado | ✍ | ✍ |
-| chamados registrados no período | ✍️ | ✍️ |
+| tempo ativo mediano para registrar um chamado | 70 s | 88 s |
+| o mesmo, sem a espera pela resposta da IA | 64 s | 77 s |
+| passos registrados na linha do tempo (mediana) | 1 | 4 |
+| chamados registrados no período (09 a 11/11/2026) | 11 | 4 |
+
+"Tempo ativo" conta só os segundos com a aba visível e alguma ação minha no último minuto. Café e interrupção não entram.
 
 | Sugestão da IA mantida sem edição | % |
 |---|---|
@@ -145,17 +149,19 @@ O sistema mede sozinho, sem mostrar nada na tela, quanto tempo cada registro lev
 
 Dados de 22 chamados registrados com IA, até 09/11/2026. Sou o único usuário, então manter a sugestão não prova que ela estava certa.
 
-✍ **O resultado:** compare o tempo ativo mediano dos dois modos e diga quantos N1 passaram a ser registrados. Se a IA não for mais rápida no registro, diga isso e mostre o que ela melhorou.
+**O resultado até agora: a IA não deixou o registro mais rápido.** Mesmo descontando os cerca de 12 s de espera pela resposta, levo uns 13 s a mais por chamado. O ganho foi outro: o chamado registrado com IA sai com uma mediana de 4 passos na linha do tempo, contra 1 no manual. São esses passos que alimentam a base de conhecimento e a detecção de recorrência.
+
+Dois cuidados ao ler esses números. A amostra é pequena (4 chamados com IA e 11 manuais). E ela tem viés: usei a IA justamente nos chamados mais longos (uma macro com erro, um acesso remoto, a preparação de uma máquina), enquanto os manuais foram, na maioria, trocas de cabo e instalações de certificado. A comparação justa exige misturar os dois modos nos mesmos tipos de chamado, e é isso que estou medindo agora.
+
+Uma observação, ainda sem força de conclusão: a fatia de N1 entre os chamados registrados subiu de 18% em julho para 45% em outubro, e novembro segue em ritmo parecido. Combina com a ideia de que o N1 resolvido no corredor passou a ser registrado, mas o período é curto demais para afirmar.
 
 ## Como construí
 
 O código foi escrito com IA. O meu papel foi o que a IA não tinha como saber sozinha:
 
-- **O problema e o contexto.** Quais chamados param um setor, o que é o MBOX, por que um backup antes de formatar é alta, por que devolver um notebook não é desligamento.
+- **O problema e o contexto.** Quais chamados param um setor, o que são softwares especificos da empresa, por que um backup antes de formatar é alta, por que devolver um notebook não é desligamento.
 - **As decisões.** Anonimizar antes de qualquer coisa. Pagar centavos por um modelo que não treina com os dados, em vez de usar um gratuito que treina. Revisar o gabarito à mão. Usar um juiz de outra empresa.
 - **Testar e duvidar do resultado.** Os erros da lista acima apareceram usando o agente com chamados reais e conferindo a saída, não lendo o código.
-
-✍️ *Revise com as suas palavras: o que você pediu, o que corrigiu e um momento em que a IA errou e você percebeu.*
 
 ## Como rodar
 
