@@ -7,7 +7,7 @@ from collections import Counter
 from pathlib import Path
 
 from base import Base, cortar
-from modelos import criar_provedor
+from modelos import ErroProvedor, criar_provedor
 from triagem import DADOS_PADRAO, PRIORIDADES, TIPOS, chamado_da_base, triar
 
 CAMPOS = ["categoria", "subcategoria", "tipo", "prioridade"]
@@ -193,11 +193,14 @@ def main():
                     if linha.get(campo) is not None:
                         base.por_id[linha["id"]][campo] = linha[campo].strip()
 
-    provedor = criar_provedor(args.provedor, args.modelo)
+    try:
+        provedor = criar_provedor(args.provedor, args.modelo)
+        juiz = criar_provedor(args.provedor, args.juiz) if args.juiz else provedor
+    except ErroProvedor as erro:
+        sys.exit(str(erro))
     if provedor.modelo in ("openrouter/free", "openrouter/auto"):
         print(f"Aviso: '{provedor.modelo}' escolhe um modelo diferente a cada pedido. "
               "Para uma avaliação comparável, fixe um modelo com --modelo.", file=sys.stderr)
-    juiz = criar_provedor(args.provedor, args.juiz) if args.juiz else provedor
     if not args.juiz and not args.sem_juiz:
         print("Aviso: sem --juiz, o próprio modelo avaliado julga os passos. "
               "Para comparar modelos, use o mesmo --juiz em todas as avaliações.", file=sys.stderr)
@@ -218,6 +221,8 @@ def main():
         print(f"[{i}/{len(teste)}] {original['id']} {cortar(original['titulo'], 50)}", flush=True)
         try:
             item = avaliar_um(base, original, provedor, juiz, not args.sem_juiz)
+        except ErroProvedor as erro:
+            sys.exit(f"\n{erro}")
         except Exception as erro:
             item = {"id": original["id"], "erro": f"{type(erro).__name__}: {cortar(str(erro), 400)}"}
             print(f"  erro: {item['erro']}", file=sys.stderr)

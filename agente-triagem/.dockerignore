@@ -1,0 +1,11 @@
+*
+!requirements.txt
+!base.py
+!modelos.py
+!triagem.py
+!esquemas.py
+!armazenamento.py
+!demo.py
+!api.py
+!gravar_demo.py
+!dados_exemplo

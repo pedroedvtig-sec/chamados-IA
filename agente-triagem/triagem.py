@@ -4,11 +4,13 @@ import os
 import sys
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 from base import RE_MAQUINA, Base, Ferramentas, cortar
-from modelos import criar_provedor, sem_acento
+from modelos import ErroProvedor, PrazoEsgotado, criar_provedor, sem_acento
 
-DADOS_PADRAO = os.environ.get("DADOS_TRIAGEM", "~/dados_privados/dados_anonimizados")
+DADOS_EXEMPLO = Path(__file__).resolve().parent / "dados_exemplo"
+DADOS_PADRAO = os.environ.get("DADOS_TRIAGEM", str(DADOS_EXEMPLO))
 
 TIPOS = ["incidente", "solicitacao", "tarefa"]
 PRIORIDADES = ["baixa", "média", "alta", "crítica"]
@@ -126,6 +128,38 @@ def montar_pedido(chamado, base=None):
     return pedido
 
 
+def ids_devolvidos(saida, vistos):
+    if isinstance(saida, dict):
+        if isinstance(saida.get("id"), str):
+            vistos.add(saida["id"].upper())
+        for valor in saida.values():
+            ids_devolvidos(valor, vistos)
+    elif isinstance(saida, list):
+        for valor in saida:
+            ids_devolvidos(valor, vistos)
+    return vistos
+
+
+def conferir_ids(resultado, vistos):
+    avisos = []
+    citados = resultado.get("chamados_relacionados") or []
+    validos = [c for c in citados if isinstance(c, str) and c.upper() in vistos]
+    inventados = [c for c in citados if c not in validos]
+    if inventados:
+        avisos.append(f"chamados citados sem terem vindo das ferramentas, removidos: {', '.join(map(str, inventados))}")
+        resultado["chamados_relacionados"] = validos
+        if not validos and resultado.get("recorrencia") == "recorrente":
+            resultado["recorrencia"] = "primeira_vez"
+            avisos.append("recorrência rebaixada para primeira_vez: nenhum chamado anterior confirmado")
+    procedimento = resultado.get("procedimento_id") or ""
+    if procedimento and procedimento.upper() not in vistos:
+        avisos.append(f"procedimento {procedimento} não veio das ferramentas, removido")
+        resultado["procedimento_id"] = ""
+        resultado["procedimento_titulo"] = ""
+        resultado["aplicabilidade"] = "nenhuma"
+    return avisos
+
+
 def triar(chamado, ferramentas, provedor, max_rodadas=8):
     funcoes = {
         "buscar_procedimentos": ferramentas.buscar_procedimentos,
@@ -134,14 +168,19 @@ def triar(chamado, ferramentas, provedor, max_rodadas=8):
         "pesquisar_web": ferramentas.pesquisar_web,
     }
 
+    vistos = set()
+
     def executar(nome, argumentos):
         funcao = funcoes.get(nome)
         if not funcao:
             return {"erro": f"função desconhecida: {nome}"}
         try:
-            return funcao(**argumentos)
+            saida = funcao(**argumentos)
         except TypeError as erro:
             return {"erro": f"argumentos inválidos para {nome}: {erro}"}
+        if nome != "pesquisar_web":
+            ids_devolvidos(saida, vistos)
+        return saida
 
     inicio = time.time()
     resultado, rastro, chamadas = provedor.agente(
@@ -149,6 +188,7 @@ def triar(chamado, ferramentas, provedor, max_rodadas=8):
         executar, "finalizar_triagem", max_rodadas)
     volta = dict(zip(PRIORIDADES_MODELO, PRIORIDADES))
     resultado["prioridade"] = volta.get(sem_acento(resultado.get("prioridade", "")), resultado.get("prioridade", ""))
+    resultado["avisos"] = conferir_ids(resultado, vistos)
     resultado["ferramentas_usadas"] = rastro
     resultado["chamadas_ao_modelo"] = chamadas
     resultado["segundos"] = round(time.time() - inicio, 1)
@@ -193,6 +233,8 @@ def exibir(r):
     print(f'  {r.get("resposta_usuario", "")}')
     usadas = ", ".join(f'{u["funcao"]}({cortar(", ".join(str(v) for v in u["argumentos"].values()), 40)})'
                        for u in r.get("ferramentas_usadas", []))
+    for aviso in r.get("avisos") or []:
+        print(f"\nAviso da conferência: {aviso}")
     print(f'\nConfiança: {r.get("confianca")}    Ferramentas: {usadas or "nenhuma"}')
     print(f'{r.get("chamadas_ao_modelo")} chamadas ao modelo em {r.get("segundos")}s · modelo: {r.get("modelo")}')
     print(linha)
@@ -214,7 +256,10 @@ def main():
 
     if not args.texto and not args.chamado:
         ap.error("informe o texto do chamado ou --chamado EMP-XXXX")
-    provedor = criar_provedor(args.provedor, args.modelo)
+    try:
+        provedor = criar_provedor(args.provedor, args.modelo)
+    except ErroProvedor as erro:
+        sys.exit(str(erro))
     base = Base(args.dados)
 
     if args.chamado:
@@ -230,7 +275,10 @@ def main():
         }
         ferramentas, original = Ferramentas(base, corte=datetime.now(timezone.utc)), None
 
-    resultado = triar(chamado, ferramentas, provedor)
+    try:
+        resultado = triar(chamado, ferramentas, provedor)
+    except (ErroProvedor, PrazoEsgotado, RuntimeError) as erro:
+        sys.exit(f"\n{erro}")
 
     if args.json:
         print(json.dumps(resultado, ensure_ascii=False, indent=2))

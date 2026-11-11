@@ -4,6 +4,8 @@ Sou o único analista de suporte de TI de uma consultoria com cerca de 90 chamad
 
 Tudo roda em chamados reais. Os números abaixo foram medidos, não estimados, a não ser onde está escrito "estimativa".
 
+**Para testar agora, sem chave de API:** `cd agente-triagem && docker compose up --build` e abra http://localhost:8000/docs ([detalhes](agente-triagem#testar-em-2-minutos)).
+
 ## Em números
 
 | | |
@@ -20,7 +22,7 @@ Tudo roda em chamados reais. Os números abaixo foram medidos, não estimados, a
 
 | Pasta | O que é | Status |
 |---|---|---|
-| [`agente-triagem`](agente-triagem) | Agente com *function calling* que recebe um chamado e devolve categoria, tipo, prioridade com motivo, recorrência, procedimento e passos. Inclui a avaliação contra gabarito e linha de base. | avaliado em 40 chamados reais |
+| [`agente-triagem`](agente-triagem) | Agente com *function calling* que recebe um chamado e devolve categoria, tipo, prioridade com motivo, recorrência, procedimento e passos. API FastAPI com histórico em Postgres, Docker, testes e a avaliação contra gabarito e linha de base. | avaliado em 40 chamados reais; roda com dados fictícios em um comando |
 | [`anonimizador`](anonimizador) | Tira pessoas, logins, e-mails, senhas, empresas, IPs e documentos dos chamados antes de qualquer uso com IA, mantendo as ligações entre registros. | usado em todos os dados do agente |
 | [`onboarding`](onboarding) | Automação em n8n: o e-mail do RH vira chamado agendado, usuário e e-mail calculados, rascunho de resposta e lembrete diário. | funciona de ponta a ponta com dados de teste; não implantado |
 
@@ -32,6 +34,31 @@ O mesmo raciocínio do agente roda dentro do sistema de chamados que construí p
 - **Relatório semanal para o gestor.** Toda segunda às 8h, o n8n manda um e-mail com volume, categorias, SLA, fila parada e possíveis recorrências, com uma ação sugerida para cada uma. Os números saem do banco; a IA só interpreta. Todo número que ela escreve precisa existir nos dados, senão a frase volta para correção ou é descartada.
 - **Pergunte aos chamados.** O gestor pergunta em português ("que setor mais abriu chamado de impressora?") e um agente decide as consultas SQL, lê os resultados e responde com texto, gráfico e o SQL usado, para conferir. As consultas rodam com um usuário do banco que só lê uma visão sem textos livres.
 - **Medição embutida.** Cada registro grava o tempo ativo (aba visível e ação no último minuto), a espera pela IA à parte e quanto da sugestão foi mantido. É daí que vêm os 94%.
+
+## Arquitetura
+
+Dois sistemas usam o mesmo agente. O deste repositório é público e roda com dados fictícios; o da empresa é privado.
+
+```mermaid
+flowchart LR
+    subgraph publico["Este repositório (docker compose)"]
+        direction TB
+        cliente["/docs ou qualquer cliente HTTP"] --> api["API FastAPI<br/>contratos Pydantic"]
+        api --> agente["agente de triagem<br/>function calling"]
+        agente --> busca["busca BM25 local<br/>chamados, procedimentos, glossário"]
+        agente --> conf["conferências no código<br/>formato, IDs inventados, categoria"]
+        api --> pg[("Postgres<br/>histórico de triagens")]
+        api -. "sem chave" .-> demo["modo demonstração<br/>triagens reais gravadas"]
+    end
+    subgraph privado["Sistema de chamados da empresa (privado)"]
+        direction TB
+        front["front-end no navegador"] --> edge["Edge Functions<br/>anonimização, chave da IA, conferências"]
+        edge --> sb[("Postgres<br/>chamados")]
+        edge --> leitor[("usuário só de leitura<br/>visão sem textos livres")]
+    end
+    agente --> or["OpenRouter<br/>data_collection: deny"]
+    edge --> or
+```
 
 ## Como funciona
 

@@ -1,0 +1,17 @@
+[
+  {
+    "id": "N1-01",
+    "titulo": "Limpar credenciais salvas do Office",
+    "categoria": "E-mail",
+    "revisar": true,
+    "passos": [
+      "Fechar o Outlook",
+      "Abrir o Gerenciador de Credenciais do Windows",
+      "Remover as entradas com MicrosoftOffice e Outlook",
+      "Abrir o Outlook e entrar de novo"
+    ],
+    "origem": [
+      "EX-0004"
+    ]
+  }
+]

@@ -46,7 +46,20 @@ def _problemas(argumentos, esquema):
     return problemas
 
 
-def _esperar(espera, motivo):
+class ErroProvedor(Exception):
+    def __init__(self, mensagem, status=503):
+        super().__init__(mensagem)
+        self.status = status
+
+
+class PrazoEsgotado(TimeoutError):
+    pass
+
+
+def _esperar(espera, motivo, restante=None):
+    if restante is not None:
+        if restante() <= espera:
+            raise PrazoEsgotado(f"o prazo da triagem acabou ({motivo})")
     print(f"  ({motivo}; esperando {espera}s...)", file=sys.stderr)
     time.sleep(espera)
     return min(espera * 2, 60)
@@ -55,17 +68,25 @@ def _esperar(espera, motivo):
 class OpenRouter:
     nome = "openrouter"
 
-    def __init__(self, modelo=None):
+    def __init__(self, modelo=None, reserva=None, tentativas=6, prazo=None):
         self.chave = os.environ.get("OPENROUTER_API_KEY")
         if not self.chave:
-            sys.exit("Defina a variável OPENROUTER_API_KEY com a sua chave da OpenRouter.")
+            raise ErroProvedor("Defina a variável OPENROUTER_API_KEY com a sua chave da OpenRouter.", 401)
         self.modelo = modelo or os.environ.get("OPENROUTER_MODEL", "openrouter/free")
+        self.reserva = reserva if reserva is not None else os.environ.get("OPENROUTER_MODEL_RESERVA", "")
+        self.tentativas = tentativas
+        self.fim = time.monotonic() + prazo if prazo else None
         self.modelos_usados = []
         self.aceita_forcar = True
 
-    def _post(self, corpo, tentativas=6):
+    def _restante(self):
+        return self.fim - time.monotonic()
+
+    def _post(self, corpo, tentativas=None):
+        tentativas = tentativas or self.tentativas
+        rota = {"models": [self.modelo, self.reserva]} if self.reserva and self.reserva != self.modelo else {"model": self.modelo}
         corpo = {
-            "model": self.modelo,
+            **rota,
             "provider": {"data_collection": "deny", "require_parameters": True},
             **corpo,
         }
@@ -79,33 +100,43 @@ class OpenRouter:
             },
         )
         espera = 5
+        restante = self._restante if self.fim else None
         for tentativa in range(tentativas):
+            limite = 120
+            if restante:
+                if restante() <= 1:
+                    raise PrazoEsgotado("o prazo da triagem acabou antes da resposta do modelo")
+                limite = min(limite, restante())
             try:
-                with urllib.request.urlopen(pedido, timeout=120) as r:
+                with urllib.request.urlopen(pedido, timeout=limite) as r:
                     dados = json.loads(r.read().decode("utf-8"))
             except urllib.error.HTTPError as erro:
                 detalhe = erro.read().decode("utf-8", "replace")[:2000]
+                if erro.code == 401:
+                    raise ErroProvedor("A OpenRouter recusou a chave (OPENROUTER_API_KEY inválida).", 401) from None
                 if erro.code == 402:
-                    sys.exit(f"\nSem créditos na OpenRouter para o modelo {self.modelo}. "
-                             f"Use um modelo ':free' ou adicione créditos.\nDetalhe: {detalhe}")
+                    raise ErroProvedor(f"Sem créditos na OpenRouter para o modelo {self.modelo}. "
+                                       f"Use um modelo ':free' ou adicione créditos. Detalhe: {detalhe}", 402) from None
                 if erro.code == 429 and "per-day" in detalhe.lower():
-                    sys.exit(f"\nLimite diário de modelos gratuitos atingido na OpenRouter.\nDetalhe: {detalhe}")
+                    raise ErroProvedor(f"Limite diário de modelos gratuitos atingido na OpenRouter. Detalhe: {detalhe}", 429) from None
                 if erro.code == 404 and "data policy" in detalhe.lower():
-                    sys.exit("\nNenhum provedor desse modelo atende à sua configuração de privacidade "
-                             f"(sem treino com seus dados). Escolha outro modelo.\nDetalhe: {detalhe}")
+                    raise ErroProvedor("Nenhum provedor desse modelo atende à configuração de privacidade "
+                                       f"(sem treino com os dados). Escolha outro modelo. Detalhe: {detalhe}", 422) from None
                 if erro.code not in (408, 429, 500, 502, 503) or tentativa == tentativas - 1:
                     raise RuntimeError(f"OpenRouter respondeu {erro.code}: {detalhe}") from None
-                espera = _esperar(espera, f"OpenRouter respondeu {erro.code}")
+                espera = _esperar(espera, f"OpenRouter respondeu {erro.code}", restante)
                 continue
-            except urllib.error.URLError as erro:
-                if tentativa == tentativas - 1:
+            except (urllib.error.URLError, TimeoutError) as erro:
+                if isinstance(erro, PrazoEsgotado):
                     raise
-                espera = _esperar(espera, f"falha de conexão: {erro.reason}")
+                if tentativa == tentativas - 1:
+                    raise RuntimeError(f"sem conexão com a OpenRouter: {getattr(erro, 'reason', erro)}") from None
+                espera = _esperar(espera, f"falha de conexão: {getattr(erro, 'reason', erro)}", restante)
                 continue
             if dados.get("error"):
                 if tentativa == tentativas - 1:
                     raise RuntimeError(f"OpenRouter: {dados['error']}")
-                espera = _esperar(espera, f"erro do provedor: {str(dados['error'])[:80]}")
+                espera = _esperar(espera, f"erro do provedor: {str(dados['error'])[:80]}", restante)
                 continue
             if dados.get("model"):
                 self.modelos_usados.append(dados["model"])
@@ -198,7 +229,7 @@ class Gemini:
 
     def __init__(self, modelo=None):
         if not os.environ.get("GEMINI_API_KEY") and not os.environ.get("GOOGLE_API_KEY"):
-            sys.exit("Defina a variável GEMINI_API_KEY com a sua chave do Google AI Studio.")
+            raise ErroProvedor("Defina a variável GEMINI_API_KEY com a sua chave do Google AI Studio.", 401)
         from google import genai
         self.cliente = genai.Client()
         self.modelo = modelo or os.environ.get("GEMINI_MODEL", "gemini-3.1-flash-lite")
@@ -215,7 +246,8 @@ class Gemini:
             except errors.APIError as erro:
                 mensagem = str(getattr(erro, "message", "") or erro)
                 if erro.code == 429 and ("limit: 0" in mensagem or "PerDay" in mensagem):
-                    sys.exit(f"\nO modelo {self.modelo} não tem cota disponível na sua chave agora.\nDetalhe: {mensagem[:300]}")
+                    raise ErroProvedor(f"O modelo {self.modelo} não tem cota disponível na sua chave agora. "
+                                       f"Detalhe: {mensagem[:300]}", 429) from None
                 if erro.code not in (429, 500, 503) or tentativa == tentativas - 1:
                     raise
                 motivo = "limite por minuto" if erro.code == 429 else "servidor sobrecarregado"
@@ -261,10 +293,10 @@ class Gemini:
         return _json_do_texto(self._chamar(pedido, config).text)
 
 
-def criar_provedor(nome=None, modelo=None):
+def criar_provedor(nome=None, modelo=None, **opcoes):
     nome = (nome or os.environ.get("LLM_PROVEDOR") or ("openrouter" if os.environ.get("OPENROUTER_API_KEY") else "gemini")).lower()
     if nome == "openrouter":
-        return OpenRouter(modelo)
+        return OpenRouter(modelo, **opcoes)
     if nome == "gemini":
         return Gemini(modelo)
-    sys.exit(f"Provedor desconhecido: {nome}. Use 'openrouter' ou 'gemini'.")
+    raise ErroProvedor(f"Provedor desconhecido: {nome}. Use 'openrouter' ou 'gemini'.", 400)

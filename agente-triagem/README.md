@@ -1,5 +1,7 @@
 # Agente de triagem de chamados
 
+[![agente-triagem](https://github.com/pedroedvtig-sec/chamados-IA/actions/workflows/agente-triagem.yml/badge.svg)](https://github.com/pedroedvtig-sec/chamados-IA/actions/workflows/agente-triagem.yml)
+
 Sou o único analista de suporte de TI de uma empresa de consultoria. Todo chamado precisa ser lido, classificado, ligado a um procedimento e documentado, e a maior parte disso é repetitiva. Este agente faz essa primeira etapa: recebe o chamado e devolve a triagem pronta para eu revisar.
 
 **Resumo**
@@ -9,6 +11,29 @@ Sou o único analista de suporte de TI de uma empresa de consultoria. Todo chama
 - Custa cerca de **US$ 0,002 por chamado**: a avaliação inteira, com 40 chamados, saiu por menos de 9 centavos de dólar.
 - O texto passa por anonimização antes de chegar ao modelo, e nenhum dado fica neste repositório.
 - O mesmo raciocínio roda dentro do meu sistema de chamados, em chamados reais. Não deixou o registro mais rápido, mas o chamado registrado com IA sai com cerca de 4 vezes mais passos documentados (detalhes em [No dia a dia](#no-dia-a-dia)).
+
+## Testar em 2 minutos
+
+Precisa só de Docker. Não precisa de chave de API.
+
+```bash
+git clone https://github.com/pedroedvtig-sec/chamados-IA.git
+cd chamados-IA/agente-triagem
+docker compose up --build
+```
+
+Abra **http://localhost:8000/docs**, escolha `POST /triagem`, clique em *Try it out* e em *Execute*. O exemplo já vem preenchido.
+
+- **Sem chave**, a API sobe em **modo demonstração**: devolve a triagem real, gravada antes pelo agente, do chamado de exemplo mais parecido com o que você mandou. A resposta diz `"modo": "demonstracao"` e qual chamado gravado foi usado.
+- **Com chave**, o agente roda de verdade: `cp .env.example .env`, preencha `OPENROUTER_API_KEY` e suba de novo. Cada triagem custa cerca de US$ 0,002.
+- Os chamados que o agente consulta vêm de [`dados_exemplo/`](dados_exemplo): 15 chamados, 5 procedimentos, um glossário e um mapa de impacto de uma empresa **fictícia**. Nada ali veio da empresa real.
+
+| Endpoint | O que faz |
+|---|---|
+| `POST /triagem` | tria um chamado e grava o resultado no Postgres |
+| `GET /triagens` | histórico, do mais novo para o mais antigo (`limite`, `deslocamento`) |
+| `GET /triagens/{id}` | uma triagem |
+| `GET /saude` | modo (real ou demonstração), banco e tamanho da base |
 
 ## O problema
 
@@ -59,6 +84,35 @@ conferência no código: campos obrigatórios, valores permitidos, JSON válido
 - **Regras de negócio que não dependem do modelo ficam no código.** Um exemplo do sistema de chamados: o anonimizador troca o nome de uma empresa cliente por `[EMPRESA_1]` antes de enviar o texto. Então o modelo nunca vê o nome e não tem como saber o setor. O setor é decidido pelo código, olhando o texto original.
 - **Glossário interno.** No primeiro teste real, o agente leu "erro de impressão no MBOX" como problema de impressora. Só que MBOX é o software de e-mail do jurídico, e "impressão" ali é exportar a mensagem. Agora, quando o chamado cita um termo do glossário, a definição vai junto. Termos desconhecidos baixam a confiança, em vez de virarem um chute.
 - **Mapa de impacto.** O agente sabe quais máquinas param um setor inteiro: as máquinas comunitárias do operacional, a máquina que hospeda as automações internas e os access points de cada setor.
+
+### Quando a IA falha
+
+O modelo cai, demora, inventa e sai do formato. Cada caso tem uma resposta definida no código, e a API nunca grava uma triagem que não passou pelas conferências.
+
+| O que acontece | O que o código faz | Na API |
+|---|---|---|
+| OpenRouter fora do ar, 429 ou 5xx | tenta de novo com espera crescente; com `OPENROUTER_MODEL_RESERVA`, a própria OpenRouter passa para o modelo reserva | 502 se esgotar |
+| Demora | prazo total por triagem (`TRIAGEM_PRAZO_SEGUNDOS`, padrão 90 s), somando tentativas e esperas | 504 |
+| Sem créditos, chave inválida, limite diário | erro claro, sem tentar de novo | 402, 401, 429 |
+| Campo faltando, valor fora da lista, JSON quebrado | devolve ao modelo exatamente o que está errado e pede de novo | 502 se não corrigir |
+| Formato final diferente do contrato | validação com Pydantic, com os campos problemáticos na resposta | 502 |
+| **Chamado ou procedimento inventado** | todo ID citado precisa ter vindo de uma ferramenta; o que não veio é removido e registrado em `avisos`. Se nenhum chamado anterior sobra, a recorrência volta para `primeira_vez` | 201 com `avisos` |
+| Subcategoria de outra categoria | removida, com aviso | 201 com `avisos` |
+| Acento trocado ou maiúscula (`Média`, `Solicitação`) | normalizado antes de validar | 201 |
+
+### Organização do código
+
+| Arquivo | Responsabilidade |
+|---|---|
+| `triagem.py` | o agente: prompt, ferramentas declaradas ao modelo, laço de *function calling*, conferência de IDs; também a linha de comando |
+| `modelos.py` | provedores de IA (OpenRouter e Gemini): tentativas, prazo, modelo reserva, conferência da saída |
+| `base.py` | dados e busca: carrega chamados, procedimentos e investigações e faz a busca BM25 |
+| `api.py` | rotas HTTP e tradução de falhas em códigos HTTP |
+| `esquemas.py` | contratos de entrada e saída (Pydantic) |
+| `armazenamento.py` | histórico em Postgres, ou em memória quando não há banco |
+| `demo.py` / `gravar_demo.py` | modo demonstração e a gravação das triagens reais que ele usa |
+| `avaliar.py` | avaliação contra o gabarito |
+| `testes/` | testes da API, das conferências e do laço do agente com um modelo roteirizado, sem rede |
 
 ## A régua
 
@@ -165,8 +219,30 @@ O código foi escrito com IA. O meu papel foi o que a IA não tinha como saber s
 
 ## Como rodar
 
+Com Docker, veja [Testar em 2 minutos](#testar-em-2-minutos). Para apontar a API para outra pasta de chamados, defina `DADOS_LOCAL` no `.env`.
+
+Sem Docker (o histórico fica em memória se `DATABASE_URL` não estiver definida):
+
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt
+python -m pytest
+uvicorn api:app --reload
+```
+
+| Variável | Para quê |
+|---|---|
+| `OPENROUTER_API_KEY` | chave da OpenRouter; vazia, a API fica em modo demonstração |
+| `OPENROUTER_MODEL` | modelo principal (avaliado: `deepseek/deepseek-v4.1-flash`) |
+| `OPENROUTER_MODEL_RESERVA` | modelo usado pela OpenRouter se o principal falhar |
+| `TRIAGEM_PRAZO_SEGUNDOS` | tempo máximo de uma triagem |
+| `DADOS_TRIAGEM` / `DADOS_LOCAL` | pasta dos chamados (sem Docker / com Docker); padrão: `dados_exemplo` |
+| `DATABASE_URL` | Postgres do histórico; o compose já define |
+
+As triagens do modo demonstração são geradas pelo próprio agente com `python gravar_demo.py` e ficam em `dados_exemplo/gravacoes_demo.json`.
+
+Linha de comando e avaliação com os dados reais, anonimizados, fora do repositório:
+
+```bash
 export OPENROUTER_API_KEY="sua-chave-da-openrouter"
 export DADOS_TRIAGEM=~/dados_privados/dados_anonimizados
 
@@ -191,7 +267,7 @@ Os chamados vêm de um ambiente real. Antes de qualquer uso com IA, eles passam 
 
 - Todo pedido à OpenRouter vai com `data_collection: deny`, ou seja, só para provedores que não treinam com os dados.
 - Os modelos gratuitos não passaram nesse filtro. Em vez de liberar os dados, paguei pelo uso: a avaliação inteira custa centavos.
-- Nenhum dado, nem anonimizado, fica neste repositório. O agente lê tudo de uma pasta local (`DADOS_TRIAGEM`), e as pastas de avaliação e o gabarito estão no `.gitignore`.
+- Nenhum dado da empresa, nem anonimizado, fica neste repositório. O agente lê os dados reais de uma pasta local (`DADOS_TRIAGEM`), e as pastas de avaliação e o gabarito estão no `.gitignore`. A pasta `dados_exemplo` é inventada do zero, de uma empresa fictícia.
 
 ## Limitações
 

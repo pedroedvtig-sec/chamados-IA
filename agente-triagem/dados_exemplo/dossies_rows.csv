@@ -1,0 +1,2 @@
+id,titulo,chamados,entradas,criado_em
+DOS-01,Investigação: lentidão no SRV-ARQ01,"[""EX-0009""]","[{""tag"": ""sintoma"", ""texto"": ""Lentidão para todos ao abrir pastas; sem erro na rede.""}, {""tag"": ""causa"", ""texto"": ""Disco com 98% de uso por backups antigos gravados no próprio servidor.""}, {""tag"": ""prevenção"", ""texto"": ""Alerta de disco acima de 85% e backups indo direto para o NAS.""}]",2026-09-22 12:00:00

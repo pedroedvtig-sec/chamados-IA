@@ -1,0 +1,44 @@
+[
+  {
+    "titulo": "VPN não conecta",
+    "descricao": "Usuário 3 sem VPN de casa de novo, aparece erro 809.",
+    "usuario": "Usuário 3",
+    "departamento": "Engenharia",
+    "maquina": "PC-000087"
+  },
+  {
+    "titulo": "Esqueci minha senha",
+    "descricao": "Não lembro a senha do computador e não consigo entrar.",
+    "usuario": "Usuário 30",
+    "departamento": "Compras",
+    "maquina": ""
+  },
+  {
+    "titulo": "Impressão do SGO não sai",
+    "descricao": "Cliquei em imprimir o relatório de medição no SGO e não acontece nada.",
+    "usuario": "Usuário 31",
+    "departamento": "Engenharia",
+    "maquina": ""
+  },
+  {
+    "titulo": "Ninguém acessa o servidor de arquivos",
+    "descricao": "O SRV-ARQ01 não abre para ninguém desde as 8h, a empresa toda está parada.",
+    "usuario": "Usuário 1",
+    "departamento": "Diretoria",
+    "maquina": ""
+  },
+  {
+    "titulo": "Monitor piscando",
+    "descricao": "O monitor do PC-000045 fica piscando e às vezes apaga.",
+    "usuario": "Usuário 21",
+    "departamento": "Compras",
+    "maquina": "PC-000045"
+  },
+  {
+    "titulo": "Mouse sem fio parou",
+    "descricao": "Mouse sem fio parou de funcionar, já troquei a pilha.",
+    "usuario": "Usuário 33",
+    "departamento": "RH",
+    "maquina": ""
+  }
+]

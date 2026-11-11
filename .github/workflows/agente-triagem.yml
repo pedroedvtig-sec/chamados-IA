@@ -1,0 +1,46 @@
+name: agente-triagem
+
+on:
+  push:
+    paths: ["agente-triagem/**", ".github/workflows/agente-triagem.yml"]
+  pull_request:
+    paths: ["agente-triagem/**"]
+
+defaults:
+  run:
+    working-directory: agente-triagem
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m pytest -v
+
+  docker-compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sobe API e Postgres sem chave (modo demonstração)
+        run: docker compose up -d --build --wait
+      - name: Saúde
+        run: curl -fsS http://127.0.0.1:8000/saude
+      - name: Triagem de ponta a ponta
+        run: |
+          esperado=201
+          [ -f dados_exemplo/gravacoes_demo.json ] || esperado=503
+          codigo=$(curl -s -o resposta.json -w '%{http_code}' -X POST http://127.0.0.1:8000/triagem \
+            -H 'content-type: application/json' \
+            -d '{"titulo":"VPN não conecta","descricao":"Erro 809 de novo em casa","usuario":"Usuário 3"}')
+          cat resposta.json
+          [ "$codigo" = "$esperado" ]
+      - name: Histórico salvo no Postgres
+        if: hashFiles('agente-triagem/dados_exemplo/gravacoes_demo.json') != ''
+        run: curl -fsS http://127.0.0.1:8000/triagens | python3 -c "import sys, json; assert json.load(sys.stdin)['total'] == 1"
+      - if: failure()
+        run: docker compose logs
