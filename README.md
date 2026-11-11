@@ -13,7 +13,7 @@ Tudo roda em chamados reais. Os números abaixo foram medidos, não estimados, a
 | **78%** de acerto na categoria e **85%** no tipo do chamado | contra 45% e 50% de quem chuta sempre a resposta mais comum (40 chamados reais, gabarito revisado à mão) |
 | **83%** dos passos sugeridos compatíveis com o que eu fiz de verdade | julgado por um modelo de outra empresa, o mesmo para todos os modelos avaliados |
 | **US$ 0,002** por chamado | a avaliação inteira, com 40 chamados, custou menos de 9 centavos de dólar |
-| **94%** dos chamados de uma semana com a sugestão da IA aceita inteira | categoria, subcategoria, tipo e prioridade, no uso diário (sou o único usuário: aceitar não prova que estava certa) |
+| **92%** dos chamados com a sugestão da IA aceita inteira (24 de 26) | categoria, subcategoria, tipo e prioridade, no uso diário (sou o único usuário: aceitar não prova que estava certa) |
 | **4 passos** documentados por chamado com IA, contra **1** sem | mediana da linha do tempo; registrar com IA ainda não é mais rápido |
 | **~2,9 h/mês** economizadas no resumo semanal para o gestor | estimativa: 40 min por semana para montar à mão, agora sai pronto toda segunda |
 | **10 de 10** tentativas de abuso bloqueadas no agente que consulta o banco | DELETE, UPDATE, segundo comando, leitura de arquivo, outras tabelas |
@@ -33,7 +33,7 @@ O mesmo raciocínio do agente roda dentro do sistema de chamados que construí p
 - **Descrever com IA.** Escrevo do meu jeito ("pediu reset, resetei") e a IA preenche o formulário e a linha do tempo, separando o que foi feito do que ficou pendente. O alvo é o maior problema: chamado N1 resolvido no corredor não era registrado. Cerca de 1 em cada 4 chamados é N1, e a fatia deles entre os registrados subiu desde julho, mas o período ainda é curto para atribuir isso à IA.
 - **Relatório semanal para o gestor.** Toda segunda às 8h, o n8n manda um e-mail com volume, categorias, SLA, fila parada e possíveis recorrências, com uma ação sugerida para cada uma. Os números saem do banco; a IA só interpreta. Todo número que ela escreve precisa existir nos dados, senão a frase volta para correção ou é descartada.
 - **Pergunte aos chamados.** O gestor pergunta em português ("que setor mais abriu chamado de impressora?") e um agente decide as consultas SQL, lê os resultados e responde com texto, gráfico e o SQL usado, para conferir. As consultas rodam com um usuário do banco que só lê uma visão sem textos livres.
-- **Medição embutida.** Cada registro grava o tempo ativo (aba visível e ação no último minuto), a espera pela IA à parte e quanto da sugestão foi mantido. É daí que vêm os 94%.
+- **Medição embutida.** Cada registro grava o tempo ativo (aba visível e ação no último minuto), a espera pela IA à parte e quanto da sugestão foi mantido. É daí que vêm os 92%.
 
 ## Arquitetura
 

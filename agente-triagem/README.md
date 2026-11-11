@@ -43,7 +43,7 @@ Registrar um chamado direito leva cerca de **1 minuto num N1** e até **3 minuto
 - **A base de conhecimento não cresce.** Se a resolução não é escrita, o próximo caso igual começa do zero.
 - **A prioridade vira "média" por padrão.** Nos chamados recentes, quase todos ficaram com o valor inicial do formulário.
 
-Volume: média de 93 chamados por mês de agosto a outubro de 2026. Cerca de 1 em cada 4 é N1: reset de senha, permissão e mapeamento de rede, periférico, toner, certificado digital e instalação de aplicativos simples. A contagem é por palavra-chave no título e na descrição, então é aproximada.
+Volume: média de 93 chamados por mês de agosto a outubro de 2026. No total desde julho, cerca de 1 em cada 4 é N1: reset de senha, permissão e mapeamento de rede, periférico, toner, certificado digital e instalação de aplicativos simples. A contagem é por palavra-chave no título e na descrição, então é aproximada.
 
 ## O que ele devolve
 
@@ -165,9 +165,9 @@ Os passos só são julgados nos chamados que têm a resolução escrita (17 não
 
 **De v1 para a versão final.** Na primeira avaliação com o DeepSeek, 6 dos 40 chamados falharam, todos pelo mesmo motivo: o modelo corrompia "média" em `mຝia`, e a conferência recusava o valor até esgotar as tentativas. A correção foi mandar as prioridades ao modelo sem acento e converter de volta no código. Com isso, os 40 chamados foram concluídos e o acerto subiu em todos os campos: categoria de 68% para 78%, tipo de 79% para 85% e prioridade de 65% para 70%.
 
-**Por que o DeepSeek.** Ele acertou mais que o Claude Haiku 5.5 em todos os campos (categoria 78% × 72%, passos compatíveis 83% × 70%), me traz bons guias de resolução de chamados, precisou de menos chamadas ao modelo por chamado (2,8 × 3,6) e custou cerca de metade (US$ 0,0021 × US$ 0,0041 por chamado).
+**Por que o DeepSeek.** Os dois modelos ficaram parecidos: o DeepSeek acertou um pouco mais (categoria 78% × 72%, passos compatíveis 83% × 70%), mas com 40 chamados a diferença é de 2 a 3 chamados por campo, dentro da margem de erro. O que decidiu foi o resto: ele me traz bons guias de resolução de chamados, precisou de menos chamadas ao modelo por chamado (2,8 × 3,6) e custou cerca de metade (US$ 0,0021 × US$ 0,0041 por chamado).
 
-**E por que o site ainda usa o Haiku.** O sistema de chamados começou a usar o Haiku antes da avaliação final. Quando os resultados saíram, ele já estava sendo medido em chamados reais (tempo de registro e aceitação das sugestões), e trocar no meio misturaria os dois modelos na mesma medição. Por isso, o Haiku fica até o fim da medição, e depois o site passa para o DeepSeek. No uso real, o Haiku teve a sugestão aceita inteira em 94% dos chamados de uma semana.
+**E por que o site ainda usa o Haiku.** O sistema de chamados começou a usar o Haiku antes da avaliação final. Quando os resultados saíram, ele já estava sendo medido em chamados reais (tempo de registro e aceitação das sugestões), e trocar no meio misturaria os dois modelos na mesma medição. Por isso, o Haiku fica até o fim da medição, e depois o site passa para o DeepSeek. No uso real, o Haiku teve a sugestão aceita inteira em 92% dos chamados (24 de 26).
 
 ## Onde ele erra
 
@@ -198,10 +198,12 @@ O sistema mede sozinho, sem mostrar nada na tela, quanto tempo cada registro lev
 | Sugestão da IA mantida sem edição | % |
 |---|---|
 | categoria | 100 |
+| subcategoria | 96 |
 | tipo | 100 |
-| prioridade | 100 |
+| prioridade | 96 |
+| **tudo junto** | **92** |
 
-Dados de 22 chamados registrados com IA, até 09/11/2026. Sou o único usuário, então manter a sugestão não prova que ela estava certa.
+Dados de 26 chamados registrados com IA, de 30/10 a 11/11/2026. Sou o único usuário, então manter a sugestão não prova que ela estava certa.
 
 **O resultado até agora: a IA não deixou o registro mais rápido.** Mesmo descontando os cerca de 12 s de espera pela resposta, levo uns 13 s a mais por chamado. O ganho foi outro: o chamado registrado com IA sai com uma mediana de 4 passos na linha do tempo, contra 1 no manual. São esses passos que alimentam a base de conhecimento e a detecção de recorrência.
 
