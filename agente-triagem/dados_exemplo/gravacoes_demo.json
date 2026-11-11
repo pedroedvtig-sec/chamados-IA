@@ -1,0 +1,384 @@
+[
+  {
+    "chamado": {
+      "titulo": "VPN não conecta",
+      "descricao": "Usuário 3 sem VPN de casa de novo, aparece erro 809.",
+      "usuario": "Usuário 3",
+      "departamento": "Engenharia",
+      "maquina": "PC-000087"
+    },
+    "resultado": {
+      "categoria": "Rede",
+      "subcategoria": "VPN",
+      "tipo": "incidente",
+      "prioridade": "alta",
+      "motivo_prioridade": "Uma pessoa está impedida de trabalhar remotamente (VPN é a via de acesso ao SGO e à pasta de projetos) e não há alternativa imediata. A VPN é usada por todo o setor de Engenharia, mas neste momento o impacto é de um único usuário, então não chega a crítica; se houver a opção de o usuário trabalhar presencialmente, a prioridade cairia para media.",
+      "recorrencia": "recorrente",
+      "chamados_relacionados": [
+        "EX-0007",
+        "EX-0001"
+      ],
+      "motivo_recorrencia": "O mesmo usuário e a mesma máquina (PC-000087) já tiveram o mesmo sintoma de VPN que não conecta: EX-0007 (\"VPN caiu de novo\", resolvido com instalação do cliente SSL pelo PROC-03) e EX-0001 (\"VPN não conecta em casa\", também resolvido migrando para o cliente SSL). O erro 809 indica bloqueio de L2TP/IPsec, exatamente o padrão das ocorrências anteriores.",
+      "procedimento_id": "PROC-03",
+      "procedimento_titulo": "Configurar VPN com o cliente SSL",
+      "aplicabilidade": "direta",
+      "passos_sugeridos": [
+        "Confirmar com o usuário que a falha é ao conectar a VPN e que a mensagem é o erro 809 (bloqueio de L2TP/IPsec na rede doméstica).",
+        "Desinstalar o cliente VPN antigo (L2TP).",
+        "Instalar o cliente SSL da pasta \\\\SRV-ARQ01\\instaladores\\vpn.",
+        "Importar o perfil da empresa e testar a conexão com o usuário de rede do Usuário 3.",
+        "Abrir a pasta de projetos para confirmar o acesso aos arquivos.",
+        "Abrir o SGO para garantir que o sistema da Engenharia está acessível pela VPN.",
+        "Registrar no chamado que se trata de recorrência (EX-0001 e EX-0007) e avaliar com o usuário se o notebook voltou a receber o cliente antigo por reinstalação ou atualização."
+      ],
+      "fonte_dos_passos": "procedimento",
+      "resposta_usuario": "Olá! Recebemos seu chamado sobre a VPN que não conecta (erro 809). Esse erro costuma acontecer porque o modo antigo de conexão é bloqueado pela rede de casa. Já identificamos que você teve o mesmo problema antes e o ajuste que funcionou foi trocar o programa de VPN pelo modelo novo, então vamos refazer esse ajuste com você. Se precisar acessar algo urgente enquanto isso, avise que buscamos uma alternativa.",
+      "confianca": "alta",
+      "avisos": [],
+      "ferramentas_usadas": [
+        {
+          "funcao": "buscar_procedimentos",
+          "argumentos": {
+            "consulta": "VPN não conecta erro 809"
+          }
+        },
+        {
+          "funcao": "historico",
+          "argumentos": {
+            "usuario": "Usuário 3",
+            "maquina": "PC-000087"
+          }
+        }
+      ],
+      "chamadas_ao_modelo": 2,
+      "segundos": 12.6,
+      "modelo": "deepseek/deepseek-v4.1-flash"
+    },
+    "gravado_em": "2026-11-11"
+  },
+  {
+    "chamado": {
+      "titulo": "Esqueci minha senha",
+      "descricao": "Não lembro a senha do computador e não consigo entrar.",
+      "usuario": "Usuário 30",
+      "departamento": "Compras",
+      "maquina": ""
+    },
+    "resultado": {
+      "categoria": "Acessos",
+      "subcategoria": "Senha",
+      "tipo": "solicitacao",
+      "prioridade": "alta",
+      "motivo_prioridade": "Uma pessoa está totalmente parada, sem alternativa de acesso ao computador e ao sistema enquanto a senha não for redefinida. Não há impacto em setor ou empresa (o chamado é individual e a máquina não foi informada), então não se justifica crítica.",
+      "recorrencia": "primeira_vez",
+      "motivo_recorrencia": "O histórico do Usuário 30 não retornou nenhum chamado anterior; não há registro de problema de senha antes para esse usuário nem máquina informada para consultar.",
+      "procedimento_id": "PROC-01",
+      "procedimento_titulo": "Redefinir ou desbloquear senha de rede",
+      "aplicabilidade": "direta",
+      "passos_sugeridos": [
+        "Confirmar a identidade do Usuário 30 por telefone ou pessoalmente antes de qualquer alteração",
+        "Localizar a conta do usuário no Active Directory (Usuários e Computadores do AD)",
+        "Verificar se a conta está bloqueada e desbloqueá-la se necessário",
+        "Redefinir a senha marcando a troca obrigatória no próximo login",
+        "Orientar o usuário a atualizar a senha no celular e nos mapeamentos salvos",
+        "Confirmar o login na máquina e registrar a tag do equipamento no chamado, já que a máquina não foi informada"
+      ],
+      "fonte_dos_passos": "procedimento",
+      "resposta_usuario": "Recebemos seu chamado sobre a senha do computador. Vamos confirmar sua identidade e liberar um novo acesso para você. Se puder, informe também o número de patrimônio ou o nome da sua máquina para agilizar o atendimento. Não envie sua senha por mensagem.",
+      "confianca": "alta",
+      "avisos": [],
+      "ferramentas_usadas": [
+        {
+          "funcao": "buscar_procedimentos",
+          "argumentos": {
+            "consulta": "esqueci senha computador reset de senha"
+          }
+        },
+        {
+          "funcao": "historico",
+          "argumentos": {
+            "usuario": "Usuário 30"
+          }
+        }
+      ],
+      "chamadas_ao_modelo": 2,
+      "segundos": 10.2,
+      "modelo": "deepseek/deepseek-v4.1-flash"
+    },
+    "gravado_em": "2026-11-11"
+  },
+  {
+    "chamado": {
+      "titulo": "Impressão do SGO não sai",
+      "descricao": "Cliquei em imprimir o relatório de medição no SGO e não acontece nada.",
+      "usuario": "Usuário 31",
+      "departamento": "Engenharia",
+      "maquina": ""
+    },
+    "resultado": {
+      "categoria": "Software",
+      "subcategoria": "SGO",
+      "tipo": "incidente",
+      "prioridade": "média",
+      "motivo_prioridade": "A exportação do relatório de medição no SGO funcionava e parou para um usuário da Engenharia. Atinge uma pessoa, mas o trabalho fica atrapalhado e há contorno (o usuário pode liberar o navegador ou exportar de outro navegador/estação). Não há indício de que o SGO esteja fora para todo o setor, então não sobe para alta/critica.",
+      "recorrencia": "primeira_vez",
+      "motivo_recorrencia": "Não há chamado anterior do Usuário 31 e a máquina não foi informada, então não é possível caracterizar repetição para esse usuário ou equipamento. O caso parecido encontrado (EX-0006) é de outro contexto e serve apenas como referência de solução.",
+      "procedimento_id": "",
+      "procedimento_titulo": "",
+      "aplicabilidade": "nenhuma",
+      "passos_sugeridos": [
+        "Confirmar com o usuário que a 'impressão' no SGO é a exportação do relatório de medição em PDF (não impressão em papel), conforme o glossário interno.",
+        "Verificar se o navegador está bloqueando pop-ups/janelas para o endereço do SGO.",
+        "Liberar pop-ups para o site do SGO no navegador usado (ex.: Edge: Configurações > Cookies e permissões de site > Pop-ups e redirecionamentos > Permitir > adicionar o endereço do SGO).",
+        "Refazer a exportação do relatório de medição e confirmar se o download do PDF foi gerado.",
+        "Se persistir, testar em outro navegador/aba anônima e registrar erro exato e horário para escalar ao time do SGO com mais detalhe."
+      ],
+      "fonte_dos_passos": "chamados_anteriores",
+      "fontes_web": [],
+      "resposta_usuario": "Olá! Recebemos seu chamado sobre o relatório de medição do SGO que não é gerado ao clicar em imprimir. Já identificamos que esse tipo de caso costuma estar ligado ao bloqueio de janelas/pop-ups do navegador. Um analista vai verificar e liberar a permissão necessária; se puder, informe qual navegador você estava usando e se apareceu alguma mensagem na tela.",
+      "confianca": "alta",
+      "avisos": [],
+      "ferramentas_usadas": [
+        {
+          "funcao": "buscar_procedimentos",
+          "argumentos": {
+            "consulta": "SGO exportar relatório medição PDF não funciona"
+          }
+        },
+        {
+          "funcao": "historico",
+          "argumentos": {
+            "usuario": "Usuário 31"
+          }
+        },
+        {
+          "funcao": "buscar_chamados_parecidos",
+          "argumentos": {
+            "consulta": "SGO impressão relatório medição não sai exportar PDF"
+          }
+        },
+        {
+          "funcao": "buscar_procedimentos",
+          "argumentos": {
+            "consulta": "exportação PDF sistema web interno SGO"
+          }
+        }
+      ],
+      "chamadas_ao_modelo": 3,
+      "segundos": 6.5,
+      "modelo": "deepseek/deepseek-v4.1-flash"
+    },
+    "gravado_em": "2026-11-11"
+  },
+  {
+    "chamado": {
+      "titulo": "Ninguém acessa o servidor de arquivos",
+      "descricao": "O SRV-ARQ01 não abre para ninguém desde as 8h, a empresa toda está parada.",
+      "usuario": "Usuário 1",
+      "departamento": "Diretoria",
+      "maquina": ""
+    },
+    "resultado": {
+      "categoria": "Rede",
+      "subcategoria": "Servidor de arquivos",
+      "tipo": "incidente",
+      "prioridade": "crítica",
+      "motivo_prioridade": "O SRV-ARQ01 é usado pela empresa inteira (mapa de impacto) e está inacessível desde as 8h, com todos parados e sem alternativa — empresa inteira parada = crítica.",
+      "recorrencia": "primeira_vez",
+      "chamados_relacionados": [
+        "EX-0009"
+      ],
+      "motivo_recorrencia": "Há chamado anterior do mesmo usuário e do mesmo servidor (EX-0009, \"Servidor de arquivos lento\"), mas o sintoma era lentidão, não indisponibilidade total; por isso não conto como recorrente. Ainda assim é forte pista: naquele caso a causa foi disco do SRV-ARQ01 com 98% de uso, o que pode ter voltado e derrubado o compartilhamento.",
+      "procedimento_id": "",
+      "procedimento_titulo": "",
+      "aplicabilidade": "nenhuma",
+      "passos_sugeridos": [
+        "Confirmar o escopo: testar acesso a \\\\SRV-ARQ01 a partir de uma máquina da Diretoria e de outra de setor diferente, para validar que é o servidor e não a rede local",
+        "Testar resposta do servidor: ping SRV-ARQ01 e, se possível, acesso por IP para descartar problema de DNS/nome",
+        "Verificar se o servidor está ligado e acessível (console/gerência remota) e checar espaço em disco — no EX-0009 o disco estava em 98% de uso; acima de 85% já é suspeita",
+        "Verificar os serviços de compartilhamento no servidor (Server / LanmanServer) e reiniciá-los se estiverem parados",
+        "Conferir logs de eventos do servidor (System) no período desde as 8h em busca de erros de disco, serviço ou desligamento inesperado",
+        "Se o disco estiver cheio, liberar espaço movendo backups antigos para o NAS (mesma ação do EX-0009) e validar acesso às pastas com o usuário",
+        "Se nada acima resolver, escalar ao responsável pela infraestrutura e abrir a investigação técnica detalhada"
+      ],
+      "fonte_dos_passos": "conhecimento_geral",
+      "fontes_web": [],
+      "resposta_usuario": "Recebemos seu chamado sobre o servidor de arquivos (SRV-ARQ01) fora do ar para todos desde as 8h. Já foi classificado como prioridade máxima e o técnico vai começar verificando o próprio servidor — inclusive espaço em disco, que já causou problema parecido antes. Não é necessário reiniciar sua máquina no momento.",
+      "confianca": "media",
+      "avisos": [],
+      "ferramentas_usadas": [
+        {
+          "funcao": "buscar_procedimentos",
+          "argumentos": {
+            "consulta": "servidor de arquivos não acessa SRV-ARQ01 indisponível"
+          }
+        },
+        {
+          "funcao": "historico",
+          "argumentos": {
+            "usuario": "Usuário 1"
+          }
+        },
+        {
+          "funcao": "buscar_chamados_parecidos",
+          "argumentos": {
+            "consulta": "servidor de arquivos SRV-ARQ01 não abre para ninguém empresa parada"
+          }
+        },
+        {
+          "funcao": "pesquisar_web",
+          "argumentos": {
+            "consulta": "servidor de arquivos Windows compartilhamento não acessível para todos os usuários servidor parado como diagnosticar serviço LanmanServer disco cheio"
+          }
+        }
+      ],
+      "chamadas_ao_modelo": 3,
+      "segundos": 18.4,
+      "modelo": "deepseek/deepseek-v4.1-flash"
+    },
+    "gravado_em": "2026-11-11"
+  },
+  {
+    "chamado": {
+      "titulo": "Monitor piscando",
+      "descricao": "O monitor do PC-000045 fica piscando e às vezes apaga.",
+      "usuario": "Usuário 21",
+      "departamento": "Compras",
+      "maquina": "PC-000045"
+    },
+    "resultado": {
+      "categoria": "Hardware",
+      "subcategoria": "Periférico",
+      "tipo": "incidente",
+      "prioridade": "média",
+      "motivo_prioridade": "Afeta uma única pessoa (Usuário 21, Compras) e o monitor ainda funciona de forma intermitente, o que dá contorno ao trabalho. Não há indicação no mapa de impacto de que PC-000045 ou o setor de Compras sustentem serviço usado por muita gente. Ficaria entre media e alta (tela apagando pode impedir o trabalho); escolhi a menor, media, porque o problema é intermitente e há alternativa imediata (trocar de monitor/estação do estoque) enquanto se investiga.",
+      "recorrencia": "primeira_vez",
+      "motivo_recorrencia": "O histórico do Usuário 21 / do PC-000045 tem dois chamados (EX-0008, teclado com teclas falhando, Hardware; EX-0010, instalação de leitor de PDF, Software), mas nenhum com o mesmo sintoma de monitor piscando/apagando. Sintoma novo para esse usuário e essa máquina.",
+      "aplicabilidade": "nenhuma",
+      "passos_sugeridos": [
+        "Confirmar com o usuário o comportamento: pisca sempre, só sob carga, ou apaga e volta? A tela fica preta com o PC ligado (LED do gabinete aceso) — isso indica falha de vídeo/monitor, não desligamento do PC.",
+        "Verificar e reencaixar o cabo de vídeo nas duas pontas (monitor e PC); se possível, testar outro cabo (HDMI/DisplayPort/VGA) para descartar cabo ruim.",
+        "Testar o monitor em outro PC ou testar outro monitor no PC-000045: se o defeito segue o monitor, é o monitor; se segue o PC, é a saída de vídeo/driver.",
+        "Conferir alimentação do monitor: fonte/cabo de força bem encaixados, teste em outra tomada e, se houver, em um nobreak; variação de energia é causa comum de piscada.",
+        "Ajustar configurações de energia/vídeo do Windows (tempo para desligar a tela, taxa de atualização, tela de descanso) e atualizar o driver de vídeo pelo pacote padrão da empresa.",
+        "Se o defeito persistir no monitor (backlight/placa/fonte interna), trocar por um monitor do estoque e encaminhar o defeito para avaliação técnica, registrando a troca no chamado."
+      ],
+      "fonte_dos_passos": "pesquisa_web",
+      "fontes_web": [
+        {
+          "titulo": "Monitor piscando: principais causas e o que fazer - Olhar Digital",
+          "url": "https://olhardigital.com.br/2024/08/22/dicas-e-tutoriais/monitor-piscando-principais-causas-e-o-que-fazer/"
+        },
+        {
+          "titulo": "Monitor piscando? Guia completo para resolver de vez - Mestres da Informática",
+          "url": "https://mestresdainformatica.com.br/monitor-piscando/"
+        },
+        {
+          "titulo": "Monitor Piscando e Depois Apaga: Tem Conserto?",
+          "url": "https://consertoeletrodomestico.com.br/artigos/monitor-piscando-e-depois-apaga-tem-conserto"
+        }
+      ],
+      "resposta_usuario": "Recebemos seu chamado sobre o monitor do PC-000045 que pisca e às vezes apaga. Já estamos tratando como problema de hardware e o técnico vai verificar cabo, alimentação e o próprio monitor, podendo trocar a tela por outra do estoque se for necessário. Se conseguir, anote em que momento a tela pisca (por exemplo, ao abrir algum programa ou ao mexer em algo na mesa) e nos avise: isso ajuda a achar a causa mais rápido. Você não precisa desconectar nada por conta própria.",
+      "confianca": "media",
+      "avisos": [],
+      "ferramentas_usadas": [
+        {
+          "funcao": "buscar_procedimentos",
+          "argumentos": {
+            "consulta": "monitor piscando apaga"
+          }
+        },
+        {
+          "funcao": "historico",
+          "argumentos": {
+            "usuario": "Usuário 21",
+            "maquina": "PC-000045"
+          }
+        },
+        {
+          "funcao": "buscar_chamados_parecidos",
+          "argumentos": {
+            "consulta": "monitor piscando apagando tela PC"
+          }
+        },
+        {
+          "funcao": "pesquisar_web",
+          "argumentos": {
+            "consulta": "monitor piscando e apagando sozinho causas cabo fonte de energia como resolver"
+          }
+        }
+      ],
+      "chamadas_ao_modelo": 4,
+      "segundos": 14.4,
+      "modelo": "deepseek/deepseek-v4.1-flash"
+    },
+    "gravado_em": "2026-11-11"
+  },
+  {
+    "chamado": {
+      "titulo": "Mouse sem fio parou",
+      "descricao": "Mouse sem fio parou de funcionar, já troquei a pilha.",
+      "usuario": "Usuário 33",
+      "departamento": "RH",
+      "maquina": ""
+    },
+    "resultado": {
+      "categoria": "Hardware",
+      "subcategoria": "Periférico",
+      "tipo": "incidente",
+      "prioridade": "média",
+      "motivo_prioridade": "Atinge uma pessoa (Usuário 33, RH) e atrapalha o trabalho, mas há contorno: dá para usar o teclado, o touchpad/atalhos ou pegar um mouse reserva do estoque. Não envolve nenhum serviço ou equipamento do mapa de impacto (nenhum deles está relacionado a este mouse). Por isso media, e não alta.",
+      "recorrencia": "primeira_vez",
+      "motivo_recorrencia": "Sem histórico de chamados para o Usuário 33 e máquina não informada, portanto não há como verificar reincidência na mesma máquina. O único caso parecido na base (EX-0008, teclado com teclas falhando no PC-000045) é de outro sintoma, outro equipamento e outro usuário, então não caracteriza recorrência.",
+      "aplicabilidade": "nenhuma",
+      "passos_sugeridos": [
+        "Confirmar com o usuário o modelo do mouse e se ele tem botão de liga/desliga: verificar se está ligado e se a pilha nova está na polaridade correta e bem assentada no contato.",
+        "Verificar o receptor USB (dongle): reencaixar bem e testar em outra porta USB, de preferência traseira/direta na máquina, evitando hub.",
+        "Testar o mouse em outro computador: se funcionar, o problema é do PC/porta USB; se não funcionar, o problema é do mouse.",
+        "Se for mouse com pareamento: refazer o emparelhamento (botão de pareamento no mouse ou no receptor, conforme o modelo) e/ou remover e reconectar o dispositivo no Windows.",
+        "Se o receptor ou o mouse estiver danificado, substituir por um mouse do estoque e registrar a troca.",
+        "Se o mouse funcionar em outro PC mas não nesta máquina, testar outro mouse nesta máquina e, se o novo também falhar, escalar para análise de portas USB/driver."
+      ],
+      "fonte_dos_passos": "conhecimento_geral",
+      "resposta_usuario": "Olá! Recebemos seu chamado sobre o mouse sem fio que parou, mesmo após trocar a pilha. Já vamos verificar. Enquanto isso, se precisar, você pode usar o teclado ou pedir um mouse reserva ao setor de TI. Se puder confirmar o modelo do mouse e se ele tem botão de liga/desliga, ajuda a agilizar o atendimento.",
+      "confianca": "media",
+      "avisos": [],
+      "ferramentas_usadas": [
+        {
+          "funcao": "buscar_procedimentos",
+          "argumentos": {
+            "consulta": "mouse sem fio parou de funcionar"
+          }
+        },
+        {
+          "funcao": "buscar_procedimentos",
+          "argumentos": {
+            "consulta": "mouse periférico não funciona"
+          }
+        },
+        {
+          "funcao": "historico",
+          "argumentos": {
+            "usuario": "Usuário 33"
+          }
+        },
+        {
+          "funcao": "buscar_chamados_parecidos",
+          "argumentos": {
+            "consulta": "mouse sem fio parou de funcionar troquei pilha"
+          }
+        },
+        {
+          "funcao": "pesquisar_web",
+          "argumentos": {
+            "consulta": "mouse sem fio parou de funcionar já troquei a pilha como resolver"
+          }
+        }
+      ],
+      "chamadas_ao_modelo": 3,
+      "segundos": 12.5,
+      "modelo": "deepseek/deepseek-v4.1-flash"
+    },
+    "gravado_em": "2026-11-11"
+  }
+]
