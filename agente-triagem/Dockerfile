@@ -9,7 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY base.py modelos.py triagem.py esquemas.py armazenamento.py demo.py api.py gravar_demo.py ./
 COPY dados_exemplo ./dados_exemplo
 
-RUN useradd --create-home --uid 1000 app
+RUN chmod -R a+rX /app && useradd --create-home --uid 1000 app
 USER app
 
 EXPOSE 8000
