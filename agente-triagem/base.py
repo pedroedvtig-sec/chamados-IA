@@ -1,6 +1,7 @@
 import csv
 import json
 import math
+import os
 import re
 import unicodedata
 from collections import Counter
@@ -78,6 +79,20 @@ class BM25:
 
 RE_MAQUINA = re.compile(r"\b(?:PC|ATV)-\d+\b", re.I)
 RE_ROTULO = re.compile(r"\b(?:Usuário|Técnico) \d+\b")
+RE_INTERNO = [
+    re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+"),
+    RE_MAQUINA,
+    RE_ROTULO,
+    re.compile(r"\b[A-Z]{2,5}-\d{2,}\b"),
+    re.compile(r"\b\d{6,}\b"),
+]
+
+
+def consulta_publica(consulta, limite=150):
+    texto = str(consulta or "")
+    for padrao in RE_INTERNO:
+        texto = padrao.sub(" ", texto)
+    return cortar(texto, limite)
 
 
 class Base:
@@ -296,6 +311,11 @@ class Ferramentas:
         }
 
     def pesquisar_web(self, consulta):
+        if os.environ.get("TRIAGEM_PESQUISA_WEB", "1") == "0":
+            return {"erro": "pesquisa na web desligada neste servidor"}
+        consulta = consulta_publica(consulta)
+        if len(consulta) < 3:
+            return {"erro": "consulta vazia depois de remover dados internos; descreva só o problema técnico"}
         try:
             from ddgs import DDGS
             resultados = DDGS().text(consulta, region="br-pt", max_results=5)

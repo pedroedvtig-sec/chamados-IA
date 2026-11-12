@@ -179,3 +179,9 @@ export function dataBr(iso: string | null): string {
   const [a, m, d] = iso.split("-");
   return `${d}/${m}/${a}`;
 }
+
+export function remetentePermitido(endereco: string, permitidos: string[]) {
+  const e = endereco.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+$/.test(e)) return false;
+  return permitidos.some((p) => p.startsWith("@") ? e.endsWith(p) : e === p);
+}

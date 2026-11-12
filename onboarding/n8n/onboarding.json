@@ -36,7 +36,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ acao: 'criar', assunto: $json.subject || '', corpo: $json.text || '', mensagem_id: $json.id, remetente_nome: ($json.from && $json.from.value && $json.from.value[0] && $json.from.value[0].name) || '' }) }}",
+        "jsonBody": "={{ JSON.stringify({ acao: 'criar', assunto: $json.subject || '', corpo: $json.text || '', mensagem_id: $json.id, remetente_nome: ($json.from && $json.from.value && $json.from.value[0] && $json.from.value[0].name) || '', remetente_email: ($json.from && $json.from.value && $json.from.value[0] && $json.from.value[0].address) || '' }) }}",
         "options": {
           "timeout": 60000
         }
@@ -66,6 +66,16 @@
               "operator": {
                 "type": "boolean",
                 "operation": "false",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "c1b",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
                 "singleValue": true
               }
             }

@@ -28,6 +28,12 @@ class FonteWeb(BaseModel):
     titulo: str = ""
     url: str = ""
 
+    @field_validator("url", mode="before")
+    @classmethod
+    def so_http(cls, valor):
+        valor = (valor or "").strip() if isinstance(valor, str) else ""
+        return valor if valor.lower().startswith(("https://", "http://")) else ""
+
 
 class FerramentaUsada(BaseModel):
     funcao: str

@@ -1,5 +1,6 @@
 import threading
 import time
+from collections import deque
 from datetime import datetime, timezone
 
 TABELA = """
@@ -63,14 +64,16 @@ class Postgres:
 class Memoria:
     nome = "memoria"
 
-    def __init__(self):
-        self.linhas = []
+    def __init__(self, maximo=1000):
+        self.linhas = deque(maxlen=maximo)
+        self.proximo = 1
         self.trava = threading.Lock()
 
     def salvar(self, modo, modelo, chamado, triagem, chamado_gravado=None):
         with self.trava:
-            linha = {"id": len(self.linhas) + 1, "criado_em": datetime.now(timezone.utc), "modo": modo,
+            linha = {"id": self.proximo, "criado_em": datetime.now(timezone.utc), "modo": modo,
                      "chamado": chamado, "triagem": triagem, "chamado_gravado": chamado_gravado}
+            self.proximo += 1
             self.linhas.append(linha)
             return linha
 
@@ -80,7 +83,8 @@ class Memoria:
         return len(ordem), ordem[deslocamento:deslocamento + limite]
 
     def obter(self, id_triagem):
-        return next((l for l in self.linhas if l["id"] == id_triagem), None)
+        with self.trava:
+            return next((l for l in self.linhas if l["id"] == id_triagem), None)
 
 
 def criar_armazenamento(url):

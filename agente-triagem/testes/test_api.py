@@ -174,3 +174,69 @@ def test_triar_confere_ids_contra_o_que_as_ferramentas_devolveram():
     assert resultado["chamados_relacionados"] == ["EX-0007"]
     assert resultado["procedimento_id"] == "PROC-03"
     assert any("EX-0420" in a for a in resultado["avisos"])
+
+
+def test_com_chave_configurada_exige_o_cabecalho(cliente, monkeypatch):
+    monkeypatch.setenv("TRIAGEM_CHAVE_API", "segredo-de-teste")
+    assert cliente.post("/triagem", json=PEDIDO).status_code == 401
+    assert cliente.get("/triagens").status_code == 401
+    assert cliente.get("/triagens/1").status_code == 401
+    assert cliente.post("/triagem", json=PEDIDO, headers={"X-API-Key": "errada"}).status_code == 401
+    assert cliente.post("/triagem", json=PEDIDO, headers={"X-API-Key": "segredo-de-teste"}).status_code == 201
+    assert cliente.get("/triagens", headers={"X-API-Key": "segredo-de-teste"}).json()["total"] == 1
+    assert cliente.get("/saude").status_code == 200
+
+
+def test_limite_por_minuto_no_modo_real(cliente, monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "teste")
+    monkeypatch.setenv("TRIAGEM_LIMITE_POR_MINUTO", "2")
+    monkeypatch.setattr(api, "limitador", api.Limitador())
+    monkeypatch.setattr(api, "triar", lambda *a, **k: dict(TRIAGEM_VALIDA))
+    codigos = [cliente.post("/triagem", json=PEDIDO).status_code for _ in range(3)]
+    assert codigos == [201, 201, 429]
+
+
+def test_erro_do_provedor_nao_vaza_detalhe(cliente, monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "teste")
+
+    def falhar(*args, **kwargs):
+        raise ErroProvedor('Sem créditos. Detalhe: {"user_id": "u-123", "conta": "x"}', 402)
+
+    monkeypatch.setattr(api, "triar", falhar)
+    r = cliente.post("/triagem", json=PEDIDO)
+    assert r.status_code == 402
+    assert "u-123" not in r.text
+
+
+def test_fonte_web_so_aceita_http(cliente, monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "teste")
+    fontes = [{"titulo": "ok", "url": "https://exemplo.com/vpn"}, {"titulo": "ruim", "url": "javascript:alert(1)"}]
+    monkeypatch.setattr(api, "triar", lambda *a, **k: {**TRIAGEM_VALIDA, "fontes_web": fontes})
+    urls = [f["url"] for f in cliente.post("/triagem", json=PEDIDO).json()["triagem"]["fontes_web"]]
+    assert urls == ["https://exemplo.com/vpn", ""]
+
+
+def test_consulta_web_sai_sem_dados_internos():
+    from base import consulta_publica
+    consulta = consulta_publica("erro 809 VPN Usuário 3 PC-000087 EX-0007 joao.silva@empresa.com 12345678")
+    assert consulta == "erro 809 VPN"
+
+
+def test_pesquisa_web_pode_ser_desligada(monkeypatch):
+    from base import Base, Ferramentas
+    from triagem import DADOS_EXEMPLO
+    monkeypatch.setenv("TRIAGEM_PESQUISA_WEB", "0")
+    assert "desligada" in Ferramentas(Base(DADOS_EXEMPLO)).pesquisar_web("erro 809")["erro"]
+
+
+def test_argumento_estranho_do_modelo_nao_derruba_a_triagem():
+    from base import Base, Ferramentas
+    from triagem import DADOS_EXEMPLO, triar
+
+    class Provedor(ProvedorRoteirizado):
+        def agente(self, sistema, pedido, declaracoes, executar, final, max_rodadas):
+            saida = executar("buscar_procedimentos", {"consulta": ["lista", "no lugar de texto"]})
+            assert "erro" in saida
+            return dict(TRIAGEM_VALIDA), [], 1
+
+    triar(PEDIDO, Ferramentas(Base(DADOS_EXEMPLO)), Provedor())

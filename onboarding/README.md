@@ -71,13 +71,15 @@ npx supabase secrets set --project-ref SEU-PROJETO \
   ONBOARDING_USER_ID="id-do-seu-usuário" \
   DOMINIO_EMAIL="suaempresa.com" \
   PREFIXO_CHAMADO="CHM" \
-  EMPRESAS_ANONIMIZAR="NomeDaEmpresa,NomeDoCliente"
+  EMPRESAS_ANONIMIZAR="NomeDaEmpresa,NomeDoCliente" \
+  REMETENTES_PERMITIDOS="@rh.suaempresa.com,pessoa.do.rh@suaempresa.com"
 ```
 
 - Guarde o token: ele vai no n8n.
 - `PREFIXO_CHAMADO` é o começo dos IDs dos chamados criados (`CHM-0001`). Use o mesmo prefixo do seu sistema de chamados.
 - O id do usuário fica em **Authentication → Users** no painel do Supabase. É o dono dos chamados criados.
 - `OPENROUTER_API_KEY` e `OPENROUTER_MODEL` são os mesmos segredos da função de triagem.
+- `REMETENTES_PERMITIDOS` limita quem abre chamado: endereços completos ou `@domínio`. Sem ela, qualquer e-mail com o assunto certo vira chamado e recebe rascunho de resposta. Para o teste com e-mail inventado, inclua o seu próprio endereço.
 
 ### 2. Importar no n8n
 

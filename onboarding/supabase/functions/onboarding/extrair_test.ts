@@ -1,5 +1,5 @@
 import { deepStrictEqual as assertEquals } from "node:assert";
-import { acesso, checklist, dataDeInicio, equipamentosPedidos, esconder, nomeDoEmail, semAssinatura, setorDoTexto } from "./extrair.ts";
+import { acesso, checklist, dataDeInicio, equipamentosPedidos, esconder, nomeDoEmail, remetentePermitido, semAssinatura, setorDoTexto } from "./extrair.ts";
 
 const HOJE = new Date(Date.UTC(2026, 9, 31));
 
@@ -61,4 +61,13 @@ Deno.test("celular de contato não vira pedido de aparelho", () => {
   assertEquals(equipamentosPedidos(["Celular"], "Telefone: [TELEFONE]"), []);
   const pedido = "Setor: comercial\nCelular: (11) 98765-4321\nVai precisar de um celular corporativo.";
   assertEquals(equipamentosPedidos(["celular corporativo"], pedido), ["celular corporativo"]);
+});
+
+Deno.test("só aceita remetente da lista ou do domínio permitido", () => {
+  const lista = ["@rh.empresa.com", "ana@empresa.com"];
+  assertEquals(remetentePermitido("Maria@RH.empresa.com", lista), true);
+  assertEquals(remetentePermitido("ana@empresa.com", lista), true);
+  assertEquals(remetentePermitido("bob@empresa.com", lista), false);
+  assertEquals(remetentePermitido("x@rh.empresa.com.golpe.io", lista), false);
+  assertEquals(remetentePermitido("", lista), false);
 });

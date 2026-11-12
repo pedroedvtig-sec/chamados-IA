@@ -1,2 +1,8 @@
 **/supabase/.temp/
 .directory
+.env
+*.env
+!.env.example
+ticketsys_backup_*.json
+*_backup_*.json
+_mapa_privado.json

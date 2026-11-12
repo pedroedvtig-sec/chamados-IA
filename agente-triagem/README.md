@@ -239,6 +239,18 @@ uvicorn api:app --reload
 | `TRIAGEM_PRAZO_SEGUNDOS` | tempo máximo de uma triagem |
 | `DADOS_TRIAGEM` / `DADOS_LOCAL` | pasta dos chamados (sem Docker / com Docker); padrão: `dados_exemplo` |
 | `DATABASE_URL` | Postgres do histórico; o compose já define |
+| `TRIAGEM_CHAVE_API` | se definida, `POST /triagem` e `GET /triagens` exigem o cabeçalho `X-API-Key`; obrigatória fora do `127.0.0.1` |
+| `TRIAGEM_LIMITE_POR_MINUTO` | triagens reais por minuto antes de responder 429; padrão 10, `0` desliga |
+| `TRIAGEM_PESQUISA_WEB` | `0` desliga a ferramenta de pesquisa na web |
+
+### Segurança
+
+- **Acesso:** o compose publica a porta só em `127.0.0.1`. Para expor a API, defina `TRIAGEM_CHAVE_API`: sem ela, quem alcança a porta gasta seus créditos e lê o histórico de triagens. Comparação da chave em tempo constante.
+- **Custo:** limite global de triagens reais por minuto e prazo total por triagem.
+- **Injeção de prompt:** o texto do chamado chega ao modelo marcado como dado, não instrução. O que o modelo devolve passa por Pydantic, IDs inventados são removidos e links de fontes só saem se forem `http(s)`. Argumento malformado numa ferramenta vira erro para o modelo, não 500.
+- **Vazamento pela pesquisa na web:** é a única saída para a internet. Antes de pesquisar, a consulta perde e-mails, rótulos de usuário, tags de máquina, IDs de chamado e números longos, e é cortada em 150 caracteres. `TRIAGEM_PESQUISA_WEB=0` desliga de vez.
+- **Erros:** detalhes do provedor de IA ficam no log do servidor; o cliente recebe só o motivo.
+- **Segredos:** `.env` e backups ficam fora do Git (`.gitignore`); só `.env.example`, vazio, é versionado. O container roda sem root.
 
 As triagens do modo demonstração são geradas pelo próprio agente com `python gravar_demo.py` e ficam em `dados_exemplo/gravacoes_demo.json`.
 

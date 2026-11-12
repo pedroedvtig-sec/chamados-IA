@@ -6,6 +6,9 @@ on:
   pull_request:
     paths: ["agente-triagem/**"]
 
+permissions:
+  contents: read
+
 defaults:
   run:
     working-directory: agente-triagem
