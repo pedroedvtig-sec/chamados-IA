@@ -6,10 +6,10 @@ Sou o único analista de suporte de TI de uma empresa de consultoria. Todo chama
 
 **Resumo**
 
-- Acerta a categoria em **78%** dos chamados e o tipo em **85%**, contra 45% e 50% de quem chuta sempre a resposta mais comum. *(DeepSeek V4.1 Flash, 40 chamados reais: tabela completa em [Resultados](#resultados).)*
-- Os passos sugeridos foram julgados compatíveis com o que eu fiz de verdade em **83%** dos casos que tinham a resolução escrita.
-- Custa cerca de **US$ 0,002 por chamado**: a avaliação inteira, com 40 chamados, saiu por menos de 9 centavos de dólar.
-- O texto passa por anonimização antes de chegar ao modelo, e nenhum dado fica neste repositório.
+- Acerta a categoria em **78%** dos chamados e o tipo em **80%**, contra 45% e 50% de quem chuta sempre a resposta mais comum. *(DeepSeek V4.1 Flash, 40 chamados reais: tabela completa em [Resultados](#resultados).)*
+- Os passos sugeridos foram julgados compatíveis com o que eu fiz de verdade em **70%** dos casos que tinham a resolução escrita (16 de 23).
+- Custa cerca de **US$ 0,003 por chamado**: a avaliação inteira, com 40 chamados, saiu por cerca de 12 centavos de dólar, fora o juiz.
+- Os chamados reais passam pelo anonimizador antes de qualquer uso com IA, e nenhum dado fica neste repositório. A API daqui espera texto já anonimizado (detalhes em [Privacidade](#privacidade)).
 - O mesmo raciocínio roda dentro do meu sistema de chamados, em chamados reais. Não deixou o registro mais rápido, mas o chamado registrado com IA sai com cerca de 4 vezes mais passos documentados (detalhes em [No dia a dia](#no-dia-a-dia)).
 
 ## Testar em 2 minutos
@@ -25,7 +25,7 @@ docker compose up --build
 Abra **http://localhost:8000/docs**, escolha `POST /triagem`, clique em *Try it out* e em *Execute*. O exemplo já vem preenchido.
 
 - **Sem chave**, a API sobe em **modo demonstração**: devolve a triagem real, gravada antes pelo agente, do chamado de exemplo mais parecido com o que você mandou. A resposta diz `"modo": "demonstracao"` e qual chamado gravado foi usado.
-- **Com chave**, o agente roda de verdade: `cp .env.example .env`, preencha `OPENROUTER_API_KEY` e suba de novo. Cada triagem custa cerca de US$ 0,002.
+- **Com chave**, o agente roda de verdade: `cp .env.example .env`, preencha `OPENROUTER_API_KEY` e suba de novo. Cada triagem custa cerca de US$ 0,003.
 - Os chamados que o agente consulta vêm de [`dados_exemplo/`](dados_exemplo): 15 chamados, 5 procedimentos, um glossário e um mapa de impacto de uma empresa **fictícia**. Nada ali veio da empresa real.
 
 | Endpoint | O que faz |
@@ -112,6 +112,7 @@ O modelo cai, demora, inventa e sai do formato. Cada caso tem uma resposta defin
 | `armazenamento.py` | histórico em Postgres, ou em memória quando não há banco |
 | `demo.py` / `gravar_demo.py` | modo demonstração e a gravação das triagens reais que ele usa |
 | `avaliar.py` | avaliação contra o gabarito |
+| `checar_corte.py` | lista os procedimentos que ainda não existiam na data de cada chamado de teste |
 | `testes/` | testes da API, das conferências e do laço do agente com um modelo roteirizado, sem rede |
 
 ## A régua
@@ -142,8 +143,10 @@ A prioridade é julgada pelo que se sabia **quando o chamado foi aberto**. Um dr
 - **Gabarito revisado à mão** com a régua acima: 40 chamados, sendo 18 de prioridade alta, 18 média e 4 baixa. Nenhum crítico na amostra.
 - **Linha de base:** "chutar sempre a resposta mais comum". Acertar 70% não diz nada se 70% dos chamados são da mesma categoria.
 - **Passos sugeridos** comparados com o que foi feito de verdade, por um **modelo juiz de outra empresa**, o mesmo para todos os modelos avaliados. Assim nenhum corrige a própria prova.
-- **Conferi o juiz.** Revisei à mão os 23 vereditos da avaliação final e concordei com todos, inclusive com os 4 em que ele reprovou os passos do agente.
+- **Conferi o juiz.** Na avaliação anterior ao corte de datas, revisei à mão os 23 vereditos e concordei com todos, inclusive com os 4 em que ele reprovou os passos do agente.
 - **Chamados sem resolução escrita** são contados à parte, em vez de distorcer o resultado.
+- **Sem olhar o futuro.** Chamados, investigações e procedimentos criados depois do chamado avaliado ficam escondidos, inclusive o rascunho de procedimento escrito a partir dele. `checar_corte.py` mostra o que esse corte esconde em cada chamado de teste.
+- **Achei um vazamento na minha própria avaliação.** Na primeira versão, a busca de procedimentos não respeitava a data: 8 dos 26 procedimentos, alguns escritos a partir dos próprios chamados de teste, apareciam para chamados mais antigos. Corrigi o filtro, criei o `checar_corte.py` e refiz a avaliação dos dois modelos. A categoria não mudou (78%), mas os passos compatíveis caíram de 83% para 70%: parte do acerto antigo era cola.
 
 ### Resultados
 
@@ -152,20 +155,20 @@ A prioridade é julgada pelo que se sabia **quando o chamado foi aberto**. Um dr
 | --- | --- | --- | --- |
 | chamados concluídos | 40/40 | 40/40 | — |
 | categoria | 78% (31/40) | 72% (29/40) | 45% |
-| subcategoria | 68% (17/25) | 56% (14/25) | 8% |
-| tipo | 85% (34/40) | 82% (33/40) | 50% |
-| prioridade | 70% (28/40) | 65% (26/40) | 45% |
-| passos compatíveis (juiz) | 83% (19) | 70% (16) | — |
-| chamadas ao modelo por chamado | 2,8 | 3,6 | — |
-| segundos por chamado | 19,0 | 18,0 | — |
-| custo por chamado | US$ 0,0021 | US$ 0,0041 | — |
+| subcategoria | 56% (14/25) | 56% (14/25) | 8% |
+| tipo | 80% (32/40) | 82% (33/40) | 50% |
+| prioridade | 72% (29/40) | 62% (25/40) | 45% |
+| passos compatíveis (juiz) | 70% (16) | 74% (17) | — |
+| chamadas ao modelo por chamado | 3,2 | 3,6 | — |
+| segundos por chamado | 22,7 | 17,9 | — |
+| custo por chamado | US$ 0,0029 | US$ 0,0040 | — |
 
 Os passos só são julgados nos chamados que têm a resolução escrita (17 não tinham). A linha de base é chutar sempre a resposta mais comum nos chamados anteriores. Juiz: `google/gemini-3.5-flash`, o mesmo para todos os modelos.
 <!-- resultados:fim -->
 
-**De v1 para a versão final.** Na primeira avaliação com o DeepSeek, 6 dos 40 chamados falharam, todos pelo mesmo motivo: o modelo corrompia "média" em `mຝia`, e a conferência recusava o valor até esgotar as tentativas. A correção foi mandar as prioridades ao modelo sem acento e converter de volta no código. Com isso, os 40 chamados foram concluídos e o acerto subiu em todos os campos: categoria de 68% para 78%, tipo de 79% para 85% e prioridade de 65% para 70%.
+**De v1 para a versão final.** Na primeira avaliação com o DeepSeek, 6 dos 40 chamados falharam, todos pelo mesmo motivo: o modelo corrompia "média" em `mຝia`, e a conferência recusava o valor até esgotar as tentativas. A correção foi mandar as prioridades ao modelo sem acento e converter de volta no código. Com isso, os 40 chamados passaram a ser concluídos.
 
-**Por que o DeepSeek.** Os dois modelos ficaram parecidos: o DeepSeek acertou um pouco mais (categoria 78% × 72%, passos compatíveis 83% × 70%), mas com 40 chamados a diferença é de 2 a 3 chamados por campo, dentro da margem de erro. O que decidiu foi o resto: ele me traz bons guias de resolução de chamados, precisou de menos chamadas ao modelo por chamado (2,8 × 3,6) e custou cerca de metade (US$ 0,0021 × US$ 0,0041 por chamado).
+**Por que o DeepSeek.** Os dois modelos empataram. O DeepSeek foi melhor em categoria (78% × 72%) e prioridade (72% × 62%); o Haiku, um pouco melhor no tipo (82% × 80%) e nos passos (74% × 70%). Com 40 chamados, a margem de erro fica em torno de 14 pontos, e todas essas diferenças cabem nela. O que decidiu foi o custo: o DeepSeek saiu cerca de 30% mais barato (US$ 0,0029 × US$ 0,0040 por chamado) e fez menos chamadas ao modelo (3,2 × 3,6), mesmo sendo um pouco mais lento (23 s × 18 s).
 
 **E por que o site ainda usa o Haiku.** O sistema de chamados começou a usar o Haiku antes da avaliação final. Quando os resultados saíram, ele já estava sendo medido em chamados reais (tempo de registro e aceitação das sugestões), e trocar no meio misturaria os dois modelos na mesma medição. Por isso, o Haiku fica até o fim da medição, e depois o site passa para o DeepSeek. No uso real, o Haiku teve a sugestão aceita inteira em 92% dos chamados (24 de 26).
 
@@ -174,7 +177,7 @@ Os passos só são julgados nos chamados que têm a resolução escrita (17 não
 - **"Impressão" virou impressora.** O agente não conhecia o jargão interno. A solução foi o glossário, que vai junto no pedido quando o termo aparece.
 - **Valores que não existem.** Um modelo devolveu a prioridade `mຝia`. Outro vazou campos para dentro dos textos (`<parameter name="confianca">`). A solução foi a conferência no código, que devolve o erro ao modelo e pede de novo.
 - **"Pediu" virou "feito".** No sistema de chamados, "pediu pra resetar a senha" foi salvo como resolvido. A solução foi uma regra explícita: pedido não é ação feita, e na dúvida o passo fica pendente.
-- **Prioridade rebaixada porque "já foi resolvido".** Backup, termo e troca de cartucho caíram para média ou baixa porque a anotação dizia que estava feito, mesmo com o prompt mandando julgar pelo momento da abertura. **Ainda em aberto.** É a maior fonte de erro de prioridade, e a prioridade (70%) só fica acima da subcategoria (68%) na avaliação final.
+- **Prioridade rebaixada porque "já foi resolvido".** Backup, termo e troca de cartucho caíram para média ou baixa porque a anotação dizia que estava feito, mesmo com o prompt mandando julgar pelo momento da abertura. **Ainda em aberto.** É a maior fonte de erro de prioridade, e a prioridade (72%) é o campo com menos acerto depois da subcategoria (56%).
 
 ## No dia a dia
 
@@ -281,6 +284,7 @@ Os chamados vêm de um ambiente real. Antes de qualquer uso com IA, eles passam 
 
 - Todo pedido à OpenRouter vai com `data_collection: deny`, ou seja, só para provedores que não treinam com os dados.
 - Os modelos gratuitos não passaram nesse filtro. Em vez de liberar os dados, paguei pelo uso: a avaliação inteira custa centavos.
+- **Onde a anonimização acontece.** No sistema de chamados, numa Edge Function, antes de o texto sair do servidor. Na avaliação, pelo anonimizador, antes de os dados chegarem à pasta local. A API deste repositório não anonimiza: ela espera texto já anonimizado, e o modo demonstração usa só dados fictícios.
 - Nenhum dado da empresa, nem anonimizado, fica neste repositório. O agente lê os dados reais de uma pasta local (`DADOS_TRIAGEM`), e as pastas de avaliação e o gabarito estão no `.gitignore`. A pasta `dados_exemplo` é inventada do zero, de uma empresa fictícia.
 
 ## Limitações
@@ -288,4 +292,5 @@ Os chamados vêm de um ambiente real. Antes de qualquer uso com IA, eles passam 
 - A avaliação usa 40 chamados de um único ambiente. É um retrato honesto, não um benchmark.
 - Não há chamados críticos na amostra, então o acerto nessa classe não foi medido.
 - A pesquisa na web usa o DuckDuckGo (`ddgs`), para funcionar igual com qualquer provedor.
+- A API não chama o anonimizador. Quem a usar com dados reais precisa anonimizar antes.
 - Para chamados que ainda não passaram pelo anonimizador, o histórico por usuário só funciona com o rótulo ("Usuário 12"), não com o nome real.

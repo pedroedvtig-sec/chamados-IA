@@ -240,3 +240,28 @@ def test_argumento_estranho_do_modelo_nao_derruba_a_triagem():
             return dict(TRIAGEM_VALIDA), [], 1
 
     triar(PEDIDO, Ferramentas(Base(DADOS_EXEMPLO)), Provedor())
+
+
+def test_procedimento_escrito_a_partir_do_chamado_nao_aparece_na_triagem_dele():
+    from base import Base, Ferramentas
+    from triagem import DADOS_EXEMPLO
+    base = Base(DADOS_EXEMPLO)
+    origem = base.por_id["EX-0004"]
+    na_epoca = Ferramentas(base, corte=origem["data"], excluir={"EX-0004"})
+    hoje = Ferramentas(base)
+    consulta = "credenciais salvas Outlook Office"
+    assert "N1-01" not in [r["id"] for r in na_epoca.buscar_procedimentos(consulta)["resultados"]]
+    assert "N1-01" in [r["id"] for r in hoje.buscar_procedimentos(consulta)["resultados"]]
+
+
+def test_procedimento_criado_depois_do_corte_fica_escondido():
+    from datetime import timedelta
+    from base import Base, Ferramentas
+    from triagem import DADOS_EXEMPLO
+    base = Base(DADOS_EXEMPLO)
+    proc = base.procs_por_id["PROC-01"]
+    corte = base.por_id["EX-0002"]["data"]
+    proc["data"] = corte + timedelta(days=1)
+    assert not Ferramentas(base, corte=corte).procedimento_visivel(proc)
+    proc["data"] = corte - timedelta(days=1)
+    assert Ferramentas(base, corte=corte).procedimento_visivel(proc)

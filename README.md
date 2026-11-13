@@ -10,9 +10,9 @@ Tudo roda em chamados reais. Os números abaixo foram medidos, não estimados, a
 
 | | |
 |---|---|
-| **78%** de acerto na categoria e **85%** no tipo do chamado | contra 45% e 50% de quem chuta sempre a resposta mais comum (40 chamados reais, gabarito revisado à mão) |
-| **83%** dos passos sugeridos compatíveis com o que eu fiz de verdade | julgado por um modelo de outra empresa, o mesmo para todos os modelos avaliados |
-| **US$ 0,002** por chamado | a avaliação inteira, com 40 chamados, custou menos de 9 centavos de dólar |
+| **78%** de acerto na categoria e **80%** no tipo do chamado | contra 45% e 50% de quem chuta sempre a resposta mais comum (40 chamados reais, gabarito revisado à mão) |
+| **70%** dos passos sugeridos compatíveis com o que eu fiz de verdade | 16 de 23 chamados com resolução escrita, julgados por um modelo de outra empresa, o mesmo para todos os modelos avaliados |
+| **US$ 0,003** por chamado | a avaliação inteira, com 40 chamados, custou cerca de 12 centavos de dólar |
 | **92%** dos chamados com a sugestão da IA aceita inteira (24 de 26) | categoria, subcategoria, tipo e prioridade, no uso diário (sou o único usuário: aceitar não prova que estava certa) |
 | **4 passos** documentados por chamado com IA, contra **1** sem | mediana da linha do tempo; registrar com IA ainda não é mais rápido |
 | **~2,9 h/mês** economizadas no resumo semanal para o gestor | estimativa: 40 min por semana para montar à mão, agora sai pronto toda segunda |

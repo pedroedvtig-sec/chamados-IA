@@ -185,6 +185,8 @@ class Base:
                     "passos": passos,
                     "origem": "base oficial",
                     "chamados_que_usaram": sorted({e.get("ticket") for e in execucoes if isinstance(e, dict) and e.get("ticket")}),
+                    "data": data(r.get("criado_em")),
+                    "escrito_a_partir_de": [],
                 })
         if arquivo_n1.exists():
             for p in json.loads(arquivo_n1.read_text(encoding="utf-8")):
@@ -195,6 +197,8 @@ class Base:
                     "passos": p["passos"],
                     "origem": "rascunho N1 (revisar)" if p.get("revisar") else "base N1",
                     "chamados_que_usaram": p.get("origem", []),
+                    "data": data(p.get("criado_em")),
+                    "escrito_a_partir_de": p.get("origem", []),
                 })
         return saida
 
@@ -229,6 +233,15 @@ class Ferramentas:
     def _dossie_visivel(self, d):
         return not (self.corte and d["data"] and d["data"] >= self.corte)
 
+    def procedimento_visivel(self, p):
+        if p["data"] and self.corte and p["data"] >= self.corte:
+            return False
+        for id_chamado in p["escrito_a_partir_de"]:
+            origem = self.base.por_id.get(id_chamado.upper())
+            if id_chamado.upper() in self.excluir or (origem and not self._visivel(origem)):
+                return False
+        return True
+
     def documentacao_ligada(self, id_chamado):
         return [d for d in self.base.dossies_por_chamado.get(id_chamado.upper(), []) if self._dossie_visivel(d)]
 
@@ -238,10 +251,10 @@ class Ferramentas:
         for i in ids:
             if i in self.base.procs_por_id and i not in vistos:
                 vistos.append(i)
-        return [self.base.procs_por_id[i] for i in vistos]
+        return [self.base.procs_por_id[i] for i in vistos if self.procedimento_visivel(self.base.procs_por_id[i])]
 
     def buscar_procedimentos(self, consulta):
-        achados = self.base.idx_procs.buscar(consulta, k=3)
+        achados = self.base.idx_procs.buscar(consulta, k=3, filtro=lambda i: self.procedimento_visivel(self.base.procedimentos[i]))
         achados = [(s, i) for s, i in achados if s >= achados[0][0] * 0.4] if achados else []
         if not achados:
             return {"resultados": [], "aviso": "nenhum procedimento parecido na base"}
