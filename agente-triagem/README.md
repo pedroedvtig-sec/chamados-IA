@@ -143,7 +143,7 @@ A prioridade é julgada pelo que se sabia **quando o chamado foi aberto**. Um dr
 - **Gabarito revisado à mão** com a régua acima: 40 chamados, sendo 18 de prioridade alta, 18 média e 4 baixa. Nenhum crítico na amostra.
 - **Linha de base:** "chutar sempre a resposta mais comum". Acertar 70% não diz nada se 70% dos chamados são da mesma categoria.
 - **Passos sugeridos** comparados com o que foi feito de verdade, por um **modelo juiz de outra empresa**, o mesmo para todos os modelos avaliados. Assim nenhum corrige a própria prova.
-- **Conferi o juiz.** Na avaliação anterior ao corte de datas, revisei à mão os 23 vereditos e concordei com todos, inclusive com os 4 em que ele reprovou os passos do agente.
+- **Conferi o juiz.** Na avaliação anterior ao corte de datas, revisei à mão os 23 vereditos e concordei com todos, inclusive com os 4 em que ele reprovou os passos do agente. Os vereditos da avaliação refeita, que estão na tabela abaixo, ainda não revisei à mão.
 - **Chamados sem resolução escrita** são contados à parte, em vez de distorcer o resultado.
 - **Sem olhar o futuro.** Chamados, investigações e procedimentos criados depois do chamado avaliado ficam escondidos, inclusive o rascunho de procedimento escrito a partir dele. `checar_corte.py` mostra o que esse corte esconde em cada chamado de teste.
 - **Achei um vazamento na minha própria avaliação.** Na primeira versão, a busca de procedimentos não respeitava a data: 8 dos 26 procedimentos, alguns escritos a partir dos próprios chamados de teste, apareciam para chamados mais antigos. Corrigi o filtro, criei o `checar_corte.py` e refiz a avaliação dos dois modelos. A categoria não mudou (78%), mas os passos compatíveis caíram de 83% para 70%: parte do acerto antigo era cola.
