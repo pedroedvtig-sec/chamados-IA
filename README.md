@@ -1,8 +1,8 @@
 # IA aplicada ao suporte de TI
 
-Sou o único analista de suporte de TI de uma consultoria com cerca de 90 chamados por mês. Este repositório reúne o que construí para tirar trabalho repetitivo do meu dia: classificar e documentar chamados, resumir a semana para o gestor e responder perguntas sobre os dados, sempre sem expor nada da empresa.
+Sou o único analista de suporte de TI de uma consultoria que registra entre 40 e 145 chamados por mês (média de 93 de agosto a outubro de 2026). Este repositório reúne o que construí para tirar trabalho repetitivo do meu dia: classificar e documentar chamados, resumir a semana e responder perguntas sobre os dados, sempre sem expor nada da empresa.
 
-Tudo roda em chamados reais. Os números abaixo foram medidos, não estimados, a não ser onde está escrito "estimativa".
+O agente e o sistema de chamados rodam em chamados reais; o onboarding, só com dados de teste. Os números abaixo foram medidos, e cada um diz em quantos chamados.
 
 **Para testar agora, sem chave de API:** `cd agente-triagem && docker compose up --build` e abra http://localhost:8000/docs ([detalhes](agente-triagem#testar-em-2-minutos)).
 
@@ -12,11 +12,12 @@ Tudo roda em chamados reais. Os números abaixo foram medidos, não estimados, a
 |---|---|
 | **78%** de acerto na categoria e **80%** no tipo do chamado | contra 45% e 50% de quem chuta sempre a resposta mais comum (40 chamados reais, gabarito revisado à mão) |
 | **70%** dos passos sugeridos compatíveis com o que eu fiz de verdade | 16 de 23 chamados com resolução escrita, julgados por um modelo de outra empresa, o mesmo para todos os modelos avaliados |
-| **US$ 0,003** por chamado | a avaliação inteira, com 40 chamados, custou cerca de 12 centavos de dólar |
-| **92%** dos chamados com a sugestão da IA aceita inteira (24 de 26) | categoria, subcategoria, tipo e prioridade, no uso diário (sou o único usuário: aceitar não prova que estava certa) |
-| **4 passos** documentados por chamado com IA, contra **1** sem | mediana da linha do tempo; registrar com IA ainda não é mais rápido |
-| **~2,9 h/mês** economizadas no resumo semanal para o gestor | estimativa: 40 min por semana para montar à mão, agora sai pronto toda segunda |
+| **US$ 0,003** por chamado | cerca de US$ 3 por mil chamados; a avaliação inteira, com 40 chamados, custou cerca de 12 centavos de dólar, fora o modelo juiz |
+| **92%** dos chamados com a sugestão da IA aceita inteira (24 de 26) | categoria, subcategoria, tipo e prioridade, no uso diário, em que a IA parte da minha anotação do que aconteceu, e não do chamado cru (sou o único usuário: aceitar não prova que estava certa) |
+| **4 passos** documentados por chamado com IA, contra **1** sem | mediana da linha do tempo em 4 chamados com IA e 11 manuais, de tipos diferentes; registrar com IA ainda não é mais rápido |
 | **10 de 10** tentativas de abuso bloqueadas no agente que consulta o banco | DELETE, UPDATE, segundo comando, leitura de arquivo, outras tabelas |
+
+As três primeiras linhas são do DeepSeek V4.1 Flash na avaliação. As duas seguintes são do Claude Haiku 5.5 no uso diário do sistema de chamados ([por que dois modelos](agente-triagem#resultados)).
 
 ## O que tem aqui
 
@@ -28,11 +29,11 @@ Tudo roda em chamados reais. Os números abaixo foram medidos, não estimados, a
 
 ## O sistema de chamados
 
-O mesmo raciocínio do agente roda dentro do sistema de chamados que construí para a empresa, inspirado no ServiceNow. Antes dele, os chamados chegavam por formulário, e-mail e planilha. O código desse sistema fica num repositório privado, porque carrega regras internas da empresa. O que ele faz com IA:
+O mesmo raciocínio do agente roda dentro do sistema de chamados que construí e uso no meu trabalho, inspirado no ServiceNow. Por enquanto, sou o único usuário. Antes dele, os chamados chegavam por formulário, e-mail e planilha. O código desse sistema fica num repositório privado, porque carrega regras internas da empresa. O que ele faz com IA:
 
-- **Descrever com IA.** Escrevo do meu jeito ("pediu reset, resetei") e a IA preenche o formulário e a linha do tempo, separando o que foi feito do que ficou pendente. O alvo é o maior problema: chamado N1 resolvido no corredor não era registrado. Cerca de 1 em cada 4 chamados é N1, e a fatia deles entre os registrados subiu desde julho, mas o período ainda é curto para atribuir isso à IA.
-- **Relatório semanal para o gestor.** Toda segunda às 8h, o n8n manda um e-mail com volume, categorias, SLA, fila parada e possíveis recorrências, com uma ação sugerida para cada uma. Os números saem do banco; a IA só interpreta. Todo número que ela escreve precisa existir nos dados, senão a frase volta para correção ou é descartada.
-- **Pergunte aos chamados.** O gestor pergunta em português ("que setor mais abriu chamado de impressora?") e um agente decide as consultas SQL, lê os resultados e responde com texto, gráfico e o SQL usado, para conferir. As consultas rodam com um usuário do banco que só lê uma visão sem textos livres.
+- **Descrever com IA.** Escrevo do meu jeito ("pediu reset, resetei") e a IA preenche o formulário e a linha do tempo, separando o que foi feito do que ficou pendente. O alvo é o maior problema: chamado N1 resolvido no corredor não era registrado. Cerca de 1 em cada 4 chamados registrados é N1. Ainda não consegui medir se o N1 passou a ser mais registrado.
+- **Relatório semanal.** Um fluxo no n8n gera um e-mail com volume, categorias, SLA, fila parada e possíveis recorrências, com uma ação sugerida para cada uma. Os números saem do banco; a IA só interpreta. Todo número que ela escreve precisa existir nos dados, senão a frase volta para correção ou é descartada. Testado de ponta a ponta com os chamados reais de uma semana, enviado só para o meu e-mail; ainda não está em uso pelo gestor.
+- **Pergunte aos chamados.** Uma pergunta em português ("que setor mais abriu chamado de impressora?") vai para um agente, que decide as consultas SQL, lê os resultados e responde com texto, gráfico e o SQL usado, para conferir. As consultas rodam com um usuário do banco que só lê uma visão sem textos livres. Foi pensado para o gestor; por enquanto, só eu usei.
 - **Medição embutida.** Cada registro grava o tempo ativo (aba visível e ação no último minuto), a espera pela IA à parte e quanto da sugestão foi mantido. É daí que vêm os 92%.
 
 ## Arquitetura
@@ -91,10 +92,11 @@ O código foi escrito com IA. O que a IA não tinha como saber sozinha foi o meu
 - **O problema e o contexto:** quais chamados param um setor, o que é o MBOX, por que backup antes de formatar é prioridade alta, por que devolver um notebook não é desligamento.
 - **Como medir:** gabarito revisado à mão, linha de base para não se enganar com acerto alto, juiz de outra empresa, tempo ativo em vez de tempo de relógio, espera da IA separada do tempo humano.
 - **Duvidar do resultado:** "impressão" virando impressora, "pediu" virando "feito", a IA lendo "resolvidos no primeiro contato" como "primeiro contato feito". Todos apareceram usando o sistema com chamados reais e conferindo a saída.
-- **Não trocar variável no meio do experimento:** a avaliação favoreceu o DeepSeek, mas o site segue com o Claude Haiku até o fim da medição de tempo, para não misturar os dois modelos nos mesmos números.
+- **Não trocar variável no meio do experimento:** na avaliação os dois modelos empataram e fiquei com o DeepSeek, que é mais barato, mas o site segue com o Claude Haiku até o fim da medição de tempo, para não misturar os dois modelos nos mesmos números.
 
 ## Limitações
 
 - Um único ambiente e 40 chamados na avaliação: é um retrato honesto, não um benchmark.
 - O tempo de registro com e sem IA ainda está sendo medido. Até agora, registrar com IA não é mais rápido: mesmo sem a espera pela resposta, leva uns 13 s a mais por chamado. O ganho medido é documentação: 4 passos registrados contra 1. A amostra é pequena (4 chamados com IA e 11 manuais) e enviesada, porque usei a IA nos casos mais longos.
-- O onboarding não foi implantado, e as horas economizadas do relatório são estimativa minha.
+- O onboarding não foi implantado. O relatório semanal e o "Pergunte aos chamados" só foram usados por mim.
+- Ainda não há horas economizadas medidas. O que está medido é acerto, custo e quanto fica documentado.

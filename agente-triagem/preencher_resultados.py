@@ -75,7 +75,9 @@ def montar_tabela(relatorios, custos):
     sem = [r["sem_resolucao"] for r in relatorios if r["sem_resolucao"] is not None]
     nota = (f"\n\nOs passos só são julgados nos chamados que têm a resolução escrita"
             f"{f' ({max(sem)} não tinham)' if sem else ''}. A linha de base é chutar sempre a resposta mais comum"
-            " nos chamados anteriores. Juiz: `google/gemini-3.5-flash`, o mesmo para todos os modelos.")
+            " nos chamados anteriores. Juiz: `google/gemini-3.5-flash`, o mesmo para todos os modelos."
+            " A subcategoria só é conferida nos chamados em que o gabarito tem subcategoria."
+            " O custo é aproximado, lido do painel de atividade da OpenRouter.")
     return tabela + nota
 
 

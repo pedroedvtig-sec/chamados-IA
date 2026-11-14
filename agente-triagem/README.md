@@ -10,7 +10,7 @@ Sou o único analista de suporte de TI de uma empresa de consultoria. Todo chama
 - Os passos sugeridos foram julgados compatíveis com o que eu fiz de verdade em **70%** dos casos que tinham a resolução escrita (16 de 23).
 - Custa cerca de **US$ 0,003 por chamado**: a avaliação inteira, com 40 chamados, saiu por cerca de 12 centavos de dólar, fora o juiz.
 - Os chamados reais passam pelo anonimizador antes de qualquer uso com IA, e nenhum dado fica neste repositório. A API daqui espera texto já anonimizado (detalhes em [Privacidade](#privacidade)).
-- O mesmo raciocínio roda dentro do meu sistema de chamados, em chamados reais. Não deixou o registro mais rápido, mas o chamado registrado com IA sai com cerca de 4 vezes mais passos documentados (detalhes em [No dia a dia](#no-dia-a-dia)).
+- O mesmo raciocínio roda dentro do meu sistema de chamados, em chamados reais. Não deixou o registro mais rápido, mas o chamado registrado com IA sai com mais passos documentados: mediana de 4 contra 1, em amostra pequena (detalhes em [No dia a dia](#no-dia-a-dia)).
 
 ## Testar em 2 minutos
 
@@ -43,7 +43,7 @@ Registrar um chamado direito leva cerca de **1 minuto num N1** e até **3 minuto
 - **A base de conhecimento não cresce.** Se a resolução não é escrita, o próximo caso igual começa do zero.
 - **A prioridade vira "média" por padrão.** Nos chamados recentes, quase todos ficaram com o valor inicial do formulário.
 
-Volume: média de 93 chamados por mês de agosto a outubro de 2026. No total desde julho, cerca de 1 em cada 4 é N1: reset de senha, permissão e mapeamento de rede, periférico, toner, certificado digital e instalação de aplicativos simples. A contagem é por palavra-chave no título e na descrição, então é aproximada.
+Volume: média de 93 chamados por mês de agosto a outubro de 2026 (145, 90 e 43). No total desde julho, cerca de 1 em cada 4 é N1: reset de senha, permissão e mapeamento de rede, periférico, toner, certificado digital e instalação de aplicativos simples. A contagem é por palavra-chave no título e na descrição, então é aproximada.
 
 ## O que ele devolve
 
@@ -163,12 +163,12 @@ A prioridade é julgada pelo que se sabia **quando o chamado foi aberto**. Um dr
 | segundos por chamado | 22,7 | 17,9 | — |
 | custo por chamado | US$ 0,0029 | US$ 0,0040 | — |
 
-Os passos só são julgados nos chamados que têm a resolução escrita (17 não tinham). A linha de base é chutar sempre a resposta mais comum nos chamados anteriores. Juiz: `google/gemini-3.5-flash`, o mesmo para todos os modelos.
+Os passos só são julgados nos chamados que têm a resolução escrita (17 não tinham). A linha de base é chutar sempre a resposta mais comum nos chamados anteriores. Juiz: `google/gemini-3.5-flash`, o mesmo para todos os modelos. A subcategoria só é conferida nos chamados em que o gabarito tem subcategoria. O custo é aproximado, lido do painel de atividade da OpenRouter.
 <!-- resultados:fim -->
 
 **De v1 para a versão final.** Na primeira avaliação com o DeepSeek, 6 dos 40 chamados falharam, todos pelo mesmo motivo: o modelo corrompia "média" em `mຝia`, e a conferência recusava o valor até esgotar as tentativas. A correção foi mandar as prioridades ao modelo sem acento e converter de volta no código. Com isso, os 40 chamados passaram a ser concluídos.
 
-**Por que o DeepSeek.** Os dois modelos empataram. O DeepSeek foi melhor em categoria (78% × 72%) e prioridade (72% × 62%); o Haiku, um pouco melhor no tipo (82% × 80%) e nos passos (74% × 70%). Com 40 chamados, a margem de erro fica em torno de 14 pontos, e todas essas diferenças cabem nela. O que decidiu foi o custo: o DeepSeek saiu cerca de 30% mais barato (US$ 0,0029 × US$ 0,0040 por chamado) e fez menos chamadas ao modelo (3,2 × 3,6), mesmo sendo um pouco mais lento (23 s × 18 s).
+**Por que o DeepSeek.** Os dois modelos empataram. O DeepSeek foi melhor em categoria (78% × 72%) e prioridade (72% × 62%); o Haiku, um pouco melhor no tipo (82% × 80%) e nos passos (74% × 70%). Com 40 chamados, a margem de erro fica em torno de 14 pontos, e todas essas diferenças cabem nela. Com empate, fiquei com o mais barato: cerca de US$ 3 contra US$ 4 por mil chamados. No meu volume isso é questão de centavos por mês; em um volume maior, é o que pesa. O DeepSeek também fez menos chamadas ao modelo (3,2 × 3,6), mas foi um pouco mais lento (23 s × 18 s).
 
 **E por que o site ainda usa o Haiku.** O sistema de chamados começou a usar o Haiku antes da avaliação final. Quando os resultados saíram, ele já estava sendo medido em chamados reais (tempo de registro e aceitação das sugestões), e trocar no meio misturaria os dois modelos na mesma medição. Por isso, o Haiku fica até o fim da medição, e depois o site passa para o DeepSeek. No uso real, o Haiku teve a sugestão aceita inteira em 92% dos chamados (24 de 26).
 
@@ -206,13 +206,15 @@ O sistema mede sozinho, sem mostrar nada na tela, quanto tempo cada registro lev
 | prioridade | 96 |
 | **tudo junto** | **92** |
 
-Dados de 26 chamados registrados com IA, de 30/10 a 11/11/2026. Sou o único usuário, então manter a sugestão não prova que ela estava certa.
+Dados de 26 chamados registrados com IA, de 30/10 a 11/11/2026. Sou o único usuário, então manter a sugestão não prova que ela estava certa. A medição de tempo ativo só começou em 09/11, por isso a tabela de tempo acima cobre menos chamados.
+
+Esses 92% não se comparam com a tabela da [avaliação](#resultados). Lá o agente recebe o chamado cru e é conferido contra um gabarito. Aqui a IA parte da minha anotação, que já diz o que aconteceu e o que eu fiz, e quem confere sou eu.
 
 **O resultado até agora: a IA não deixou o registro mais rápido.** Mesmo descontando os cerca de 12 s de espera pela resposta, levo uns 13 s a mais por chamado. O ganho foi outro: o chamado registrado com IA sai com uma mediana de 4 passos na linha do tempo, contra 1 no manual. São esses passos que alimentam a base de conhecimento e a detecção de recorrência.
 
 Dois cuidados ao ler esses números. A amostra é pequena (4 chamados com IA e 11 manuais). E ela tem viés: usei a IA justamente nos chamados mais longos (uma macro com erro, um acesso remoto, a preparação de uma máquina), enquanto os manuais foram, na maioria, trocas de cabo e instalações de certificado. A comparação justa exige misturar os dois modos nos mesmos tipos de chamado, e é isso que estou medindo agora.
 
-Uma observação, ainda sem força de conclusão: a fatia de N1 entre os chamados registrados subiu de 18% em julho para 45% em outubro, e novembro segue em ritmo parecido. Combina com a ideia de que o N1 resolvido no corredor passou a ser registrado, mas o período é curto demais para afirmar.
+O que ainda não consegui mostrar: se o N1 resolvido no corredor passou a ser registrado. A fatia de N1 entre os chamados registrados subiu de 18% em julho para 45% em outubro, mas o total de chamados caiu no mesmo período, então a fatia sozinha não prova nada. Falta comparar o número absoluto de N1 por semana.
 
 ## Como construí
 
