@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/7d38791c-ddbb-4d17-8588-a7b2f24ba1df
+
 # IA aplicada ao suporte de TI
 
 Sou o único analista de suporte de TI de uma consultoria que registra entre 40 e 145 chamados por mês (média de 93 de agosto a outubro de 2026). Este repositório reúne o que construí para tirar trabalho repetitivo do meu dia: classificar e documentar chamados, resumir a semana e responder perguntas sobre os dados, sempre sem expor nada da empresa.
