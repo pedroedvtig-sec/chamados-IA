@@ -28,7 +28,8 @@ def ler_relatorio(pasta):
     for campo in CAMPOS:
         m = re.search(rf"^\| {campo} \| (\d+)% \((\d+)/(\d+)\) \| (\d+)%", texto, re.M)
         if m:
-            r[campo] = (int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            ok, n = int(m.group(2)), int(m.group(3))
+            r[campo] = ((200 * ok + n) // (2 * n) if n else int(m.group(1)), ok, n)
             r[f"base_{campo}"] = int(m.group(4))
 
     m = re.search(r"^- compatível: (\d+) \((\d+)%\)", texto, re.M)

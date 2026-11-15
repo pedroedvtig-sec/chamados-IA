@@ -154,10 +154,10 @@ A prioridade é julgada pelo que se sabia **quando o chamado foi aberto**. Um dr
 |  | DeepSeek V4.1 Flash | Claude Haiku 5.5 | linha de base |
 | --- | --- | --- | --- |
 | chamados concluídos | 40/40 | 40/40 | — |
-| categoria | 78% (31/40) | 72% (29/40) | 45% |
+| categoria | 78% (31/40) | 73% (29/40) | 45% |
 | subcategoria | 56% (14/25) | 56% (14/25) | 8% |
-| tipo | 80% (32/40) | 82% (33/40) | 50% |
-| prioridade | 72% (29/40) | 62% (25/40) | 45% |
+| tipo | 80% (32/40) | 83% (33/40) | 50% |
+| prioridade | 73% (29/40) | 63% (25/40) | 45% |
 | passos compatíveis (juiz) | 70% (16) | 74% (17) | — |
 | chamadas ao modelo por chamado | 3,2 | 3,6 | — |
 | segundos por chamado | 22,7 | 17,9 | — |
@@ -168,7 +168,7 @@ Os passos só são julgados nos chamados que têm a resolução escrita (17 não
 
 **De v1 para a versão final.** Na primeira avaliação com o DeepSeek, 6 dos 40 chamados falharam, todos pelo mesmo motivo: o modelo corrompia "média" em `mຝia`, e a conferência recusava o valor até esgotar as tentativas. A correção foi mandar as prioridades ao modelo sem acento e converter de volta no código. Com isso, os 40 chamados passaram a ser concluídos.
 
-**Por que o DeepSeek.** Os dois modelos empataram. O DeepSeek foi melhor em categoria (78% × 72%) e prioridade (72% × 62%); o Haiku, um pouco melhor no tipo (82% × 80%) e nos passos (74% × 70%). Com 40 chamados, a margem de erro fica em torno de 14 pontos, e todas essas diferenças cabem nela. Com empate, fiquei com o mais barato: cerca de US$ 3 contra US$ 4 por mil chamados. No meu volume isso é questão de centavos por mês; em um volume maior, é o que pesa. O DeepSeek também fez menos chamadas ao modelo (3,2 × 3,6), mas foi um pouco mais lento (23 s × 18 s).
+**Por que o DeepSeek.** Os dois modelos empataram. O DeepSeek foi melhor em categoria (78% × 73%) e prioridade (73% × 63%); o Haiku, um pouco melhor no tipo (83% × 80%) e nos passos (74% × 70%). Com 40 chamados, a margem de erro fica em torno de 14 pontos, e todas essas diferenças cabem nela. Com empate, fiquei com o mais barato: cerca de US$ 3 contra US$ 4 por mil chamados. No meu volume isso é questão de centavos por mês; em um volume maior, é o que pesa. O DeepSeek também fez menos chamadas ao modelo (3,2 × 3,6), mas foi um pouco mais lento (23 s × 18 s).
 
 **E por que o site ainda usa o Haiku.** O sistema de chamados começou a usar o Haiku antes da avaliação final. Quando os resultados saíram, ele já estava sendo medido em chamados reais (tempo de registro e aceitação das sugestões), e trocar no meio misturaria os dois modelos na mesma medição. Por isso, o Haiku fica até o fim da medição, e depois o site passa para o DeepSeek. No uso real, o Haiku teve a sugestão aceita inteira em 92% dos chamados (24 de 26).
 
@@ -177,7 +177,7 @@ Os passos só são julgados nos chamados que têm a resolução escrita (17 não
 - **"Impressão" virou impressora.** O agente não conhecia o jargão interno. A solução foi o glossário, que vai junto no pedido quando o termo aparece.
 - **Valores que não existem.** Um modelo devolveu a prioridade `mຝia`. Outro vazou campos para dentro dos textos (`<parameter name="confianca">`). A solução foi a conferência no código, que devolve o erro ao modelo e pede de novo.
 - **"Pediu" virou "feito".** No sistema de chamados, "pediu pra resetar a senha" foi salvo como resolvido. A solução foi uma regra explícita: pedido não é ação feita, e na dúvida o passo fica pendente.
-- **Prioridade rebaixada porque "já foi resolvido".** Backup, termo e troca de cartucho caíram para média ou baixa porque a anotação dizia que estava feito, mesmo com o prompt mandando julgar pelo momento da abertura. **Ainda em aberto.** É a maior fonte de erro de prioridade, e a prioridade (72%) é o campo com menos acerto depois da subcategoria (56%).
+- **Prioridade rebaixada porque "já foi resolvido".** Backup, termo e troca de cartucho caíram para média ou baixa porque a anotação dizia que estava feito, mesmo com o prompt mandando julgar pelo momento da abertura. **Ainda em aberto.** É a maior fonte de erro de prioridade, e a prioridade (73%) é o campo com menos acerto depois da subcategoria (56%).
 
 ## No dia a dia
 
@@ -192,9 +192,11 @@ O sistema mede sozinho, sem mostrar nada na tela, quanto tempo cada registro lev
 | | manual | com IA |
 |---|---|---|
 | tempo ativo mediano para registrar um chamado | 70 s | 88 s |
-| o mesmo, sem a espera pela resposta da IA | 64 s | 77 s |
+| o mesmo, sem a espera pela resposta da IA | 70 s | 77 s |
 | passos registrados na linha do tempo (mediana) | 1 | 4 |
 | chamados registrados no período (09 a 11/11/2026) | 11 | 4 |
+
+A tabela é um retrato fechado em 11/11/2026. No registro manual não há espera, por isso a segunda linha repete os 70 s.
 
 "Tempo ativo" conta só os segundos com a aba visível e alguma ação minha no último minuto. Café e interrupção não entram.
 
@@ -210,9 +212,11 @@ Dados de 26 chamados registrados com IA, de 30/10 a 11/11/2026. Sou o único usu
 
 Esses 92% não se comparam com a tabela da [avaliação](#resultados). Lá o agente recebe o chamado cru e é conferido contra um gabarito. Aqui a IA parte da minha anotação, que já diz o que aconteceu e o que eu fiz, e quem confere sou eu.
 
-**O resultado até agora: a IA não deixou o registro mais rápido.** Mesmo descontando os cerca de 12 s de espera pela resposta, levo uns 13 s a mais por chamado. O ganho foi outro: o chamado registrado com IA sai com uma mediana de 4 passos na linha do tempo, contra 1 no manual. São esses passos que alimentam a base de conhecimento e a detecção de recorrência.
+**O resultado até agora: a IA não deixou o registro mais rápido.** Mesmo descontando os cerca de 12 s de espera pela resposta, levo uns 7 s a mais por chamado. O ganho foi outro: o chamado registrado com IA sai com uma mediana de 4 passos na linha do tempo, contra 1 no manual. São esses passos que alimentam a base de conhecimento e a detecção de recorrência.
 
 Dois cuidados ao ler esses números. A amostra é pequena (4 chamados com IA e 11 manuais). E ela tem viés: usei a IA justamente nos chamados mais longos (uma macro com erro, um acesso remoto, a preparação de uma máquina), enquanto os manuais foram, na maioria, trocas de cabo e instalações de certificado. A comparação justa exige misturar os dois modos nos mesmos tipos de chamado, e é isso que estou medindo agora.
+
+**Atualização de 14/11/2026.** Com 9 chamados com IA e 11 manuais, o tempo ativo mediano com IA subiu para 158 s (127 s sem a espera), contra os mesmos 70 s do manual, e a mediana da linha do tempo ficou em 5 itens contra 1. A conclusão não muda: a IA não deixou o registro mais rápido, e o viés continua, porque os casos longos seguem indo para a IA. A linha do tempo também cresce depois do registro: os 4 chamados da tabela acima hoje têm mediana de 6,5 itens.
 
 O que ainda não consegui mostrar: se o N1 resolvido no corredor passou a ser registrado. A fatia de N1 entre os chamados registrados subiu de 18% em julho para 45% em outubro, mas o total de chamados caiu no mesmo período, então a fatia sozinha não prova nada. Falta comparar o número absoluto de N1 por semana.
 
