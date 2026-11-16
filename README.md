@@ -1,10 +1,8 @@
-
-
-https://github.com/user-attachments/assets/7d38791c-ddbb-4d17-8588-a7b2f24ba1df
-
 # IA aplicada ao suporte de TI
 
 Sou o único analista de suporte de TI de uma consultoria que registra entre 40 e 145 chamados por mês (média de 93 de agosto a outubro de 2026). Este repositório reúne o que construí para tirar trabalho repetitivo do meu dia: classificar e documentar chamados, resumir a semana e responder perguntas sobre os dados, sempre sem expor nada da empresa.
+
+https://github.com/user-attachments/assets/7d38791c-ddbb-4d17-8588-a7b2f24ba1df
 
 O agente e o sistema de chamados rodam em chamados reais; o onboarding, só com dados de teste. Os números abaixo foram medidos, e cada um diz em quantos chamados.
 
@@ -101,6 +99,6 @@ O código foi escrito com IA. O que a IA não tinha como saber sozinha foi o meu
 ## Limitações
 
 - Um único ambiente e 40 chamados na avaliação: é um retrato honesto, não um benchmark.
-- O tempo de registro com e sem IA ainda está sendo medido. Até agora, registrar com IA não é mais rápido: mesmo sem a espera pela resposta, leva uns 13 s a mais por chamado. O ganho medido é documentação: 4 passos registrados contra 1. A amostra é pequena (4 chamados com IA e 11 manuais) e enviesada, porque usei a IA nos casos mais longos.
+- O tempo de registro com e sem IA ainda está sendo medido. Até agora, registrar com IA não é mais rápido: mesmo sem a espera pela resposta, leva uns 7 s a mais por chamado. O ganho medido é documentação: 4 passos registrados contra 1. A amostra é pequena (4 chamados com IA e 11 manuais) e enviesada, porque usei a IA nos casos mais longos.
 - O onboarding não foi implantado. O relatório semanal e o "Pergunte aos chamados" só foram usados por mim.
 - Ainda não há horas economizadas medidas. O que está medido é acerto, custo e quanto fica documentado.

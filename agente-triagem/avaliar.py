@@ -79,7 +79,7 @@ def avaliar_um(base, original, provedor, juiz, com_juiz):
 
 
 def porcentagem(a, b):
-    return f"{100 * a / b:.0f}%" if b else "—"
+    return f"{(200 * a + b) // (2 * b)}%" if b else "—"
 
 
 def matriz(linhas, campo, valores):
